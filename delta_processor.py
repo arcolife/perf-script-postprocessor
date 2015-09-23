@@ -30,9 +30,12 @@ class PostProcessor(object):
         self.result_path = res_path
         
     def load_data(self):
-        self.df = pd.read_csv(self.file_path)
-        self.df.convert_objects(convert_numeric=True)
-        self.df['tstamp'] = self.df.apply(lambda row: row.tstamp*1000000, axis=1)
+        try:
+            self.df = pd.read_csv(self.file_path)
+            self.df.convert_objects(convert_numeric=True)
+            self.df['tstamp'] = self.df.apply(lambda row: row.tstamp*1000000, axis=1)
+        except Exception as E:
+            quit(E)
         # print(self.df.dtypes)
         # print(len(self.df))
         
