@@ -84,14 +84,13 @@ class PostProcessor(object):
 
         # if per-metric csv's are required, generate them!
 
-        try:
-            os.mkdir(self.result_path)
-        except FileExistsError as E:
-            print("Dir exists..")
-        except PermissionError as E:
-            quit("Permission Error. Results Dir cannot be created!")
-        except:
-            raise
+        if os.path.exists(self.result_path):
+            print("Result Dir exists..")
+        else:
+            try:
+                os.mkdir(self.result_path)
+            except:
+                raise
 
         if break_up:
             for entry in self.entries:
@@ -130,7 +129,7 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser(description="""Generate delta of entry/exit points 
     for data from `perf script`. Example:
     
-    ./delta_processor.py --input=dumps/perf_data.csv --output=dumps/ --per_metric=True""")
+    ./delta_processor --input=dumps/perf_data.csv --output=dumps/ --per_metric=True""")
     parser.add_argument('--input', type=str, help='Absolute Path to input csv file')
     parser.add_argument('--output', type=str, help='Absolute Path to output dir')    
     parser.add_argument('--per_metric', type=bool, help='breakup the result file into per-metric csv delta files')
