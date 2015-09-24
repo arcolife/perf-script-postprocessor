@@ -81,9 +81,6 @@ class PostProcessor(object):
         # prepare list of metric categories
         self._unique_metrics()
         # prepare dict of dataframes with keys as category
-        for entry in self.entries:
-            self.df_dict[entry] = self.df[(self.df['entry'] == self._process_inverse(entry)) |\
-                                (self.df['entry'] == self._process_inverse(entry, alternate=True))]
 
         # if per-metric csv's are required, generate them!
         if break_up:
@@ -96,15 +93,37 @@ class PostProcessor(object):
             except:
                 raise
             
-            for key in self.df_dict.keys():
-                self.df_dict[key].set_index('entry').diff().to_csv('%s.csv'%(os.path.join(self.result_path, key)))
-            print("Per-metric results have been stored to %s"%(self.result_path))
-        else:
-            # TODO: if breakup isn't specified, join the 
-            # dataframes into one single frame and dump that
-            pass
+            for entry in self.entries:
+                _tmp = self.df[(self.df['entry'] == self._process_inverse(entry)) |\
+                                    (self.df['entry'] == self._process_inverse(entry, alternate=True))]
+                
+                # dump results
+                _tmp.set_index('entry').diff().to_csv('%s.csv'%(os.path.join(self.result_path, entry)))
 
+        else:
+            # if breakup isn't specified, join the dataframes
+            # into one single frame and dump that.
+            for entry in self.entries:
+                _tmp = self.df[(self.df['entry'] == self._process_inverse(entry)) | \
+                                   (self.df['entry'] == self._process_inverse(entry, alternate=True))]
+                x = _tmp.loc[:,"tstamp"].diff()
+                _tmp.loc[:,"diff"] = x
+                _tmp.drop(_tmp.columns[[0, 1]], axis=1, inplace=True)
+                self.df_dict[entry] = _tmp['diff']
+
+            df1 = pd.DataFrame(self.df_dict)
+            df1['entries'] = self.df.entry
+            df1['tstamp'] = self.df.tstamp
+            # rearrange columns
+            cols = df1.columns.tolist()
+            cols = cols[-2:] + cols[:-2]
+            df1 = df1[cols]
+            # dump results
+            df1.to_csv('%s.csv'%(os.path.join(self.result_path, 'delta_processed')))
             
+        print("Per-metric results have been stored to %s"%(self.result_path))
+
+
 if __name__=='__main__':
    # Parse configurations
     parser = argparse.ArgumentParser(description="""Generate delta of entry/exit points 

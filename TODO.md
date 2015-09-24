@@ -1,4 +1,4 @@
-- [ ] Add support single file csv output (combine all df's from df_dict)
+- [x] Add support single file csv output (combine all df's from df_dict)
 
 - [ ] Add some optimizations to reduce loading time
     - maybe use python's csv module? pandas maybe an overkill

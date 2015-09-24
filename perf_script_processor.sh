@@ -18,7 +18,7 @@ if [[ ! -z $DUMP_PATH ]]; then
 		sed -i '1s/^/tstamp,entry\n/' $DUMP_PATH'perf_data.csv'
 	elif [ -f $DUMP_PATH'perf_data.csv' ]; then
 	    # run postprocessor on that
-	    ./delta_processor.py --input=$DUMP_PATH'perf_data.csv' --output=$DUMP_PATH --per_metric=True
+	    ./delta_processor.py --input=$DUMP_PATH'perf_data.csv' --output=$DUMP_PATH #--per_metric=True
 	# else
 	# 	echo "ERROR! Failed to somehow write to intermediate result file perf_data.csv."
 	# fi
