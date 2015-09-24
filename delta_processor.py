@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2
 # coding: utf-8
 
 # Author: Archit Sharma <archit.py@gmail.com>
@@ -83,16 +83,17 @@ class PostProcessor(object):
         # prepare dict of dataframes with keys as category
 
         # if per-metric csv's are required, generate them!
+
+        try:
+            os.mkdir(self.result_path)
+        except FileExistsError as E:
+            print("Dir exists..")
+        except PermissionError as E:
+            quit("Permission Error. Results Dir cannot be created!")
+        except:
+            raise
+
         if break_up:
-            try:
-                os.mkdir(self.result_path)
-            except FileExistsError as E:
-                print("Dir exists..")
-            except PermissionError as E:
-                quit("Permission Error. Results Dir cannot be created!")
-            except:
-                raise
-            
             for entry in self.entries:
                 _tmp = self.df[(self.df['entry'] == self._process_inverse(entry)) |\
                                     (self.df['entry'] == self._process_inverse(entry, alternate=True))]

@@ -12,9 +12,10 @@ a set of utilities,which is provided under the package [perf-tools](https://gith
 
 #### Requirements for installation
 
-     - python3
-     - python3-pandas
-     
+Run `$ pip install -r requirements.txt` to install deps:
+    - python2
+    - python2-pandas	
+
 ```
 $ perf_script_processor.sh <dir path where either perf.data or perf_data.csv exists>
 ```
