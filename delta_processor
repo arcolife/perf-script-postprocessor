@@ -120,6 +120,7 @@ class PostProcessor(object):
             df1.to_csv('%s.csv'%(os.path.join(self.result_path, 'delta_processed')))
             
             if self.mode==1:
+                # TODO: add implementation for loop based statistics
                 pass
             
         print("Script was executed with Mode option %d.\nResults have been stored to: %s"\
