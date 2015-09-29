@@ -81,9 +81,7 @@ class PostProcessor(object):
         # prepare list of metric categories
         self._unique_metrics()
         # prepare dict of dataframes with keys as category
-
         # if per-metric csv's are required, generate them!
-
         if not os.path.exists(self.result_path):
             try:
                 os.mkdir(self.result_path)
@@ -106,11 +104,15 @@ class PostProcessor(object):
                                    (self.df['entry'] == self._process_inverse(entry, alternate=True))]
                 
                 _tmp.loc[:,"diff"] = _tmp.loc[:,"tstamp"].diff()
-                _tmp.drop(_tmp.columns[[0, 1]], axis=1, inplace=True)
+                # avoid inplace
+                _tmp = _tmp.drop(_tmp.columns[[0, 1]], axis=1)
                 self.df_dict[entry] = _tmp['diff']
 
+            del _tmp
+            del df
+            
             df1 = pd.DataFrame(self.df_dict)
-            df1['entries'] = self.df.entry
+            df1['entry'] = self.df.entry
             df1['tstamp'] = self.df.tstamp
             # rearrange columns
             cols = df1.columns.tolist()
@@ -120,9 +122,34 @@ class PostProcessor(object):
             df1.to_csv('%s.csv'%(os.path.join(self.result_path, 'delta_processed')))
             
             if self.mode==1:
-                # TODO: add implementation for loop based statistics
-                pass
-            
+                # TODO: optimize this
+                pattern = ("kvm_exit","syscallssys_exit_ppoll","syscallssys_enter_io_submit","syscallssys_exit_io_submit")
+
+                _tmp = df1.loc[df1['entry'].isin(pattern)]
+                # avoid inplace
+                _tmp = _tmp.drop(_tmp.columns[2:].tolist(), axis=1)
+
+                checklist_1 = _tmp.loc[_tmp['entry'] == pattern[-1]]
+                indices_1 = checklist.index.tolist()
+                data = []
+
+                for pat_3_loc in indices_1:
+                    x = _tmp.ix[:pat_3_loc]
+                    pat_2_loc = x[x.entry == pattern[-2]].iloc[-1].name
+                    pat_1_loc = x[x.entry == pattern[1]].iloc[-1].name
+                    pat_0_loc = x[x.entry == pattern[0]].iloc[-1].name
+                    data.append([_tmp.ix[pat_0_loc].tstamp,
+                                _tmp.ix[pat_1_loc].tstamp,
+                                _tmp.ix[pat_2_loc].tstamp,
+                                _tmp.ix[pat_3_loc].tstamp])
+                    _tmp = _tmp.ix[pat_3_loc:]
+                    
+                loops = pd.DataFrame(data, columns=pattern)
+                loops.loc[:,"kvm_exit_diffs"] = loops.loc[:,"kvm_exit"].diff()
+                loops.loc[:,"io_submit_delta"] = loops.loc[:,"syscallssys_exit_io_submit"] - loops.loc[:,"syscallssys_enter_io_submit"]
+                loops.to_csv('%s.csv'%(os.path.join(self.result_path, 'loop_diff')))
+
+        del df_dict
         print("Script was executed with Mode option %d.\nResults have been stored to: %s"\
             %(self.mode, self.result_path))
 
@@ -145,7 +172,7 @@ if __name__=='__main__':
         default='perf_data.csv', 
         help='Absolute Path to input csv file')
     parser.add_argument('-m', '--mode', type=int, 
-        default=1,  
+        default=0,  
         help='specify mode as per above documentation')
     parser.add_argument('-o', '--output', type=str, 
         default='/tmp/pp_results',
