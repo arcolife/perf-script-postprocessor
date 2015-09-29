@@ -19,15 +19,17 @@ import os, sys
 import argparse
 import pandas as pd
 
+pd.options.mode.chained_assignment = None  # default='warn'
+
 class PostProcessor(object):
     '''
     Form a DataFrame from the csv and utilize 
     inhouse functions to calculate delta. '''
-    def __init__(self, csv_fpath, res_path='/tmp/pp_results'):
-        self.file_path = csv_fpath
+    def __init__(self, file_path='', result_path='', mode=2):
+        self.file_path = file_path
+        self.result_path = result_path
+        self.mode = mode
         self.df_dict = {}
-        # self._figsize = (13.5,8)
-        self.result_path = res_path
         
     def load_data(self):
         try:
@@ -36,8 +38,6 @@ class PostProcessor(object):
             self.df['tstamp'] = self.df.apply(lambda row: row.tstamp*1000000, axis=1)
         except Exception as E:
             quit(E)
-        # print(self.df.dtypes)
-        # print(len(self.df))
         
     def _process(self, x):
         ''' 
@@ -75,7 +75,7 @@ class PostProcessor(object):
         self.entries = set([self._process(i) for i in self.entries])
         print("Unique metrics found:\n\t%s"%'\n\t'.join(self.entries))
 
-    def prepare_delta(self, break_up=False):
+    def prepare_delta(self):
         # load data
         self.load_data()
         # prepare list of metric categories
@@ -84,15 +84,13 @@ class PostProcessor(object):
 
         # if per-metric csv's are required, generate them!
 
-        if os.path.exists(self.result_path):
-            print("Result Dir exists..")
-        else:
+        if not os.path.exists(self.result_path):
             try:
                 os.mkdir(self.result_path)
             except:
                 raise
 
-        if break_up:
+        if self.mode==2:
             for entry in self.entries:
                 _tmp = self.df[(self.df['entry'] == self._process_inverse(entry)) |\
                                     (self.df['entry'] == self._process_inverse(entry, alternate=True))]
@@ -106,8 +104,8 @@ class PostProcessor(object):
             for entry in self.entries:
                 _tmp = self.df[(self.df['entry'] == self._process_inverse(entry)) | \
                                    (self.df['entry'] == self._process_inverse(entry, alternate=True))]
-                x = _tmp.loc[:,"tstamp"].diff()
-                _tmp.loc[:,"diff"] = x
+                
+                _tmp.loc[:,"diff"] = _tmp.loc[:,"tstamp"].diff()
                 _tmp.drop(_tmp.columns[[0, 1]], axis=1, inplace=True)
                 self.df_dict[entry] = _tmp['diff']
 
@@ -121,34 +119,43 @@ class PostProcessor(object):
             # dump results
             df1.to_csv('%s.csv'%(os.path.join(self.result_path, 'delta_processed')))
             
-        print("Per-metric results have been stored to %s"%(self.result_path))
+            if self.mode==1:
+                pass
+            
+        print("Script was executed with Mode option %d.\nResults have been stored to: %s"\
+            %(self.mode, self.result_path))
 
 
 if __name__=='__main__':
    # Parse configurations
-    parser = argparse.ArgumentParser(description="""Generate delta of entry/exit points 
-    for data from `perf script`. Example:
+    parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter, 
+    description="""
+    Generate delta of entry/exit points for data from `perf script. 
+    This script runs in 3 modes. Those being:
+
+    Mode 0: Produce `delta_processed.csv` with all events together.
+    Mode 1: In addition to mode 0, this calculates loop statistics(*)
+    Mode 2: breakup result into per-event calculated delta csv files.
     
-    ./delta_processor --input=dumps/perf_data.csv --output=dumps/ --per_metric=True""")
-    parser.add_argument('--input', type=str, help='Absolute Path to input csv file')
-    parser.add_argument('--output', type=str, help='Absolute Path to output dir')    
-    parser.add_argument('--per_metric', type=bool, help='breakup the result file into per-metric csv delta files')
+    *Loop order:
+    kvm_exit -> sys_exit_ppoll -> sys_enter_io_submit -> sys_exit_io_submit""")
+    # requiredNamed = parser.add_argument_group('required named arguments')
+    parser.add_argument('-i', '--input', type=str, 
+        default='perf_data.csv', 
+        help='Absolute Path to input csv file')
+    parser.add_argument('-m', '--mode', type=int, 
+        default=1,  
+        help='specify mode as per above documentation')
+    parser.add_argument('-o', '--output', type=str, 
+        default='/tmp/pp_results',
+        help='Absolute Path to output dir')
+
     args = parser.parse_args()
     try:
-        if not args.input:
-            if sys.argv[1]:
-                PP = PostProcessor(sys.argv, res_path=args.output)
-            else:
-                PP = PostProcessor('perf_data.csv', res_path='.')
-            Delta = PP.prepare_delta()
-        else:
-            if args.output:
-                PP = PostProcessor(args.input, res_path=args.output)
-            else:
-                PP = PostProcessor(args.input)
-            if args.per_metric:
-                Delta = PP.prepare_delta(break_up=True)
-            else:
-                Delta = PP.prepare_delta()
+        PP = PostProcessor(
+                file_path=args.input, 
+                result_path=args.output,
+                mode=args.mode)
+        Delta = PP.prepare_delta()
     except Exception as E:
         quit("%s\nUnable to execute. Refer to --help. I Quit!"%(E))

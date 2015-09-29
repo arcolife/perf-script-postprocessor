@@ -1,0 +1,8 @@
+grep -A 2 '^\s*$' raw_test
+grep qemu-kvm raw_perf | wc -l
+grep -cvP '^\s*$' raw_perf
+sed ':a;N;$!ba;s/\n/ /g'
+grep --no-group-separator -A 3 '^\s*$'  raw_test | grep -v '^\s*$'
+
+tac raw_test | sed '/^\s*$/I,+6 d' | tac | head -n -6  | sed 's/qemu-kvm/\n&/g' | tail -n +2 > raw_test1
+#tac raw_test | sed '/^\s*$/I,+6 d' | tac | head -n -6  | sed '/qemu-kvm/i\\n' | tail -n +3 > raw_test1
