@@ -155,7 +155,7 @@ class PostProcessor(object):
 
 
 if __name__=='__main__':
-   # Parse configurations
+    # Parse configurations
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter, 
     description="""
     Generate delta of entry/exit points for data from `perf script. 

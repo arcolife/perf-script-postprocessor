@@ -6,4 +6,5 @@
 - [ ] Try to normalize the data so we could eliminate major points from a huge dataset
 
 - [ ] maybe perform ANOVA to observe change significance.
- 
+
+- [ ] Optimize loop stats calculation
