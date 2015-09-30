@@ -37,7 +37,7 @@ delta_processor --input=$DUMP_PATH'/perf_data.csv' --output=$DUMP_PATH
     
 * [1] Loop order:
 
-``` kvm_exit -> sys_exit_ppoll -> sys_enter_io_submit -> sys_exit_io_submit" ```
+``` kvm_exit -> sys_exit_ppoll -> sys_enter_io_submit -> sys_exit_io_submit ```
 
 * [2] Main events:
 	
