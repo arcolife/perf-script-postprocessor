@@ -61,3 +61,7 @@ of postprocessor script.
 ## LICENSE
 
 GPL V3
+
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/arcolife/perf-script-postprocessor/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+
