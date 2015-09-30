@@ -27,10 +27,11 @@ delta_processor --input=$DUMP_PATH'/perf_data.csv' --output=$DUMP_PATH
 * Define DUMP_PATH as you would like it to be. Ensure, script has write permissions to
 	the folder.
 
-* Generate delta of entry/exit points for data from `perf script. 
-  This script runs in 3 modes. Those being:
+* Generate delta of entry/exit points for data from `perf script`[3]. 
+  
+* This script runs in 3 modes. Those being:
 
-	- `Mode 0`: Produce `delta_processed.csv` with __all events together__[2].
+    - `Mode 0`: Produce `delta_processed.csv` with __all events together__[2].
     - `Mode 1`: In addition to mode 0, this calculates __loop statistics__[1].
     - `Mode 2`: breakup result into __per-event calculated delta csv files__.
     
@@ -50,6 +51,7 @@ delta_processor --input=$DUMP_PATH'/perf_data.csv' --output=$DUMP_PATH
 		syscallssys__pwrite64
 		syscallssys__pwritev
 	```
+* [3] Check more options for script through `$ delta_processor -h`
 
 Note: 
 perf_data.csv is produced by using the perf_script_processor command.
