@@ -11,8 +11,8 @@
 # entry and exit, the no of x-axis points would be be large enough,
 # given the length of all kvm entries and size of entry/exit points. 
 # Even if this is plotted in nvd3, I don't think one would be able to 
-# make out the differences that minute.. Hence we leave it to only producing
-# a delta in a huge csv file.
+# make out the differences that minute.. 
+# Hence we leave it to only producing a delta in a huge csv file.
 
 
 import os, sys
@@ -35,7 +35,8 @@ class PostProcessor(object):
         try:
             self.df = pd.read_csv(self.file_path)
             self.df.convert_objects(convert_numeric=True)
-            self.df['tstamp'] = self.df.apply(lambda row: row.tstamp*1000000, axis=1)
+            self.df['tstamp'] = self.df.apply(lambda row: \
+                row.tstamp*1000000, axis=1)
         except Exception as E:
             quit(E)
         
@@ -73,6 +74,7 @@ class PostProcessor(object):
         if pd.np.nan in self.entries:
             self.entries.remove(pd.np.nan)
         self.entries = set([self._process(i) for i in self.entries])
+        print("*"*22)
         print("Unique metrics found:\n\t%s"%'\n\t'.join(self.entries))
 
     def prepare_delta(self):
@@ -90,45 +92,59 @@ class PostProcessor(object):
 
         if self.mode==2:
             for entry in self.entries:
-                _tmp = self.df[(self.df['entry'] == self._process_inverse(entry)) |\
-                                    (self.df['entry'] == self._process_inverse(entry, alternate=True))]
+                _tmp = self.df[(self.df['entry'] == \
+                                self._process_inverse(entry)) |\
+                                    (self.df['entry'] == \
+                                    self._process_inverse(entry, alternate=True))]
                 
                 # dump results
-                _tmp.set_index('entry').diff().to_csv('%s.csv'%(os.path.join(self.result_path, entry)))
+                _tmp.set_index('entry').diff().to_csv('%s.csv' % \
+                    (os.path.join(self.result_path, entry)))
 
         else:
             # if breakup isn't specified, join the dataframes
             # into one single frame and dump that.
             for entry in self.entries:
-                _tmp = self.df[(self.df['entry'] == self._process_inverse(entry)) | \
-                                   (self.df['entry'] == self._process_inverse(entry, alternate=True))]
+                _tmp = self.df[(self.df['entry'] == \
+                                self._process_inverse(entry)) | \
+                                   (self.df['entry'] == \
+                                    self._process_inverse(entry, alternate=True))]
                 
                 _tmp.loc[:,"diff"] = _tmp.loc[:,"tstamp"].diff()
                 # avoid inplace
                 _tmp = _tmp.drop(_tmp.columns[[0, 1]], axis=1)
                 self.df_dict[entry] = _tmp['diff']
 
-            del _tmp
-            del df
-            
             df1 = pd.DataFrame(self.df_dict)
+            
+            del df
+            del _tmp
+            del df_dict
+
             df1['entry'] = self.df.entry
             df1['tstamp'] = self.df.tstamp
             # rearrange columns
             cols = df1.columns.tolist()
             cols = cols[-2:] + cols[:-2]
             df1 = df1[cols]
+
+            df1 = df1.fillna(0)
             # dump results
             df1.to_csv('%s.csv'%(os.path.join(self.result_path, 'delta_processed')))
-            
+
             if self.mode==1:
                 # TODO: optimize this
-                pattern = ("kvm_exit","syscallssys_exit_ppoll","syscallssys_enter_io_submit","syscallssys_exit_io_submit")
+                pattern = ("kvm_exit", "syscallssys_exit_ppoll",\
+                    "syscallssys_enter_io_submit", "syscallssys_exit_io_submit")
 
+                # To identify loops, I'm filtering last event in given pattern first, 
+                # noting down all corresponding indices, then looking for second last 
+                # event in the pattern from that dataframe, getting the last element 
+                # after filtering. This is apparently taking a lot of time.
+                
                 _tmp = df1.loc[df1['entry'].isin(pattern)]
                 # avoid inplace
                 _tmp = _tmp.drop(_tmp.columns[2:].tolist(), axis=1)
-
                 checklist_1 = _tmp.loc[_tmp['entry'] == pattern[-1]]
                 indices_1 = checklist.index.tolist()
                 data = []
@@ -146,10 +162,27 @@ class PostProcessor(object):
                     
                 loops = pd.DataFrame(data, columns=pattern)
                 loops.loc[:,"kvm_exit_diffs"] = loops.loc[:,"kvm_exit"].diff()
-                loops.loc[:,"io_submit_delta"] = loops.loc[:,"syscallssys_exit_io_submit"] - loops.loc[:,"syscallssys_enter_io_submit"]
+                loops.loc[:,"io_submit_delta"] = loops.loc[:,"syscallssys_exit_io_submit"] - \
+                                                 loops.loc[:,"syscallssys_enter_io_submit"]
+                loops = loops.fillna(0)
+
+                print("*"*22)
+                print("io_submit_delta stats:")
+                print("\tStandard Dev: %s\n\tMean: %s\n\tMedian: %s" % \
+                            (loops.io_submit_delta.std(), 
+                             loops.io_submit_delta.mean(), 
+                             loops.io_submit_delta.median()))
+
+                print("="*22)
+                print("kvm_exit_diffs stats:")
+                print("\tStandard Dev: %s\n\tMean: %s\n\tMedian: %s" % \
+                            (loops.kvm_exit_diffs.std(), 
+                             loops.kvm_exit_diffs.mean(), 
+                             loops.kvm_exit_diffs.median()))
+
+                print("*"*22)
                 loops.to_csv('%s.csv'%(os.path.join(self.result_path, 'loop_diff')))
 
-        del df_dict
         print("Script was executed with Mode option %d.\nResults have been stored to: %s"\
             %(self.mode, self.result_path))
 
@@ -184,6 +217,6 @@ if __name__=='__main__':
                 file_path=args.input, 
                 result_path=args.output,
                 mode=args.mode)
-        Delta = PP.prepare_delta()
+        PP.prepare_delta()
     except Exception as E:
         quit("%s\nUnable to execute. Refer to --help. I Quit!"%(E))

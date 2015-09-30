@@ -27,18 +27,28 @@ delta_processor --input=$DUMP_PATH'/perf_data.csv' --output=$DUMP_PATH
 * Define DUMP_PATH as you would like it to be. Ensure, script has write permissions to
 	the folder.
 
-* use the `--per_metric=True` if you want the metric deltas to be dumped in separate 
-  csv files, which might go like this:
+* Generate delta of entry/exit points for data from `perf script. 
+  This script runs in 3 modes. Those being:
 
+	- `Mode 0`: Produce `delta_processed.csv` with __all events together__[2].
+    - `Mode 1`: In addition to mode 0, this calculates __loop statistics__[1].
+    - `Mode 2`: breakup result into __per-event calculated delta csv files__.
+    
+* [1] Loop order:
+
+``` kvm_exit -> sys_exit_ppoll -> sys_enter_io_submit -> sys_exit_io_submit" ```
+
+* [2] Main events:
+	
 	```
-	kvm___.csv
-	sched_switch.csv
-	syscallssys__futex.csv
-	syscallssys__io_getevents.csv
-	syscallssys__io_submit.csv
-	syscallssys__ppoll.csv
-	syscallssys__pwrite64.csv
-	syscallssys__pwritev.csv
+		kvm___
+		sched_switch
+		syscallssys__futex
+		syscallssys__io_getevents
+		syscallssys__io_submit
+		syscallssys__ppoll
+		syscallssys__pwrite64
+		syscallssys__pwritev
 	```
 
 Note: 
