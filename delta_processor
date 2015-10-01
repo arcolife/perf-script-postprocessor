@@ -161,9 +161,16 @@ class PostProcessor(object):
                     _tmp = _tmp.ix[pat_3_loc:]
                     
                 loops = pd.DataFrame(data, columns=pattern)
-                loops.loc[:,"kvm_exit_diffs"] = loops.loc[:,"kvm_exit"].diff()
-                loops.loc[:,"io_submit_delta"] = loops.loc[:,"syscallssys_exit_io_submit"] - \
-                                                 loops.loc[:,"syscallssys_enter_io_submit"]
+                # loops.loc[:,"kvm_exit_diffs"] = loops.loc[:,"kvm_exit"].diff()
+                loops.loc[:,"delta__exit_ppoll__kvm_exit"] = \
+                                        loops.loc[:,"syscallssys_exit_ppoll"] - \
+                                         loops.loc[:,"kvm_exit"]
+                loops.loc[:,"delta__enter_io_submit__exit_ppoll"] = \
+                                        loops.loc[:,"syscallssys_enter_io_submit"] - \
+                                         loops.loc[:,"syscallssys_exit_ppoll"]
+                loops.loc[:,"delta__io_submit"] = loops.loc[:,"syscallssys_exit_io_submit"] - \
+                                                     loops.loc[:,"syscallssys_enter_io_submit"]
+                                
                 loops = loops.fillna(0)
 
                 print("*"*22)
