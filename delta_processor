@@ -170,7 +170,7 @@ class PostProcessor(object):
                         quit("ERROR: pattern entry not found in input dataset. I quit")
                     
                 loops = pd.DataFrame(data, columns=pattern)
-                # loops.loc[:,"kvm_exit_diffs"] = loops.loc[:,"kvm_exit"].diff()
+                # loops.loc[:,"delta__exit_ppoll__kvm_exit"] = loops.loc[:,"kvm_exit"].diff()
                 loops.loc[:,"delta__exit_ppoll__kvm_exit"] = \
                                         loops.loc[:,"syscallssys_exit_ppoll"] - \
                                          loops.loc[:,"kvm_exit"]
@@ -183,18 +183,25 @@ class PostProcessor(object):
                 loops = loops.fillna(0)
 
                 print("*"*22)
-                print("io_submit_delta stats:")
+                print("delta__exit_ppoll__kvm_exit stats:")
                 print("\tStandard Dev: %s\n\tMean: %s\n\tMedian: %s" % \
-                            (loops.io_submit_delta.std(), 
-                             loops.io_submit_delta.mean(), 
-                             loops.io_submit_delta.median()))
+                            (loops.delta__exit_ppoll__kvm_exit.std(), 
+                             loops.delta__exit_ppoll__kvm_exit.mean(), 
+                             loops.delta__exit_ppoll__kvm_exit.median()))
 
                 print("="*22)
-                print("kvm_exit_diffs stats:")
+                print("delta__enter_io_submit__exit_ppoll stats:")
                 print("\tStandard Dev: %s\n\tMean: %s\n\tMedian: %s" % \
-                            (loops.kvm_exit_diffs.std(), 
-                             loops.kvm_exit_diffs.mean(), 
-                             loops.kvm_exit_diffs.median()))
+                            (loops.delta__enter_io_submit__exit_ppoll.std(), 
+                             loops.delta__enter_io_submit__exit_ppoll.mean(), 
+                             loops.delta__enter_io_submit__exit_ppoll.median()))
+
+                print("="*22)
+                print("delta__io_submit stats:")
+                print("\tStandard Dev: %s\n\tMean: %s\n\tMedian: %s" % \
+                            (loops.delta__io_submit.std(), 
+                             loops.delta__io_submit.mean(), 
+                             loops.delta__io_submit.median()))
 
                 print("*"*22)
                 loops.to_csv('%s.csv'%(os.path.join(self.result_path, 'loop_diff')))
