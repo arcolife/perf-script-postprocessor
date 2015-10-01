@@ -1,5 +1,5 @@
 #!/bin/bash
 
-pip install -r requirements.txt
+pip install -U -r requirements.txt
 cp perf_script_processor delta_processor /usr/local/bin/
 chmod +x /usr/local/bin/{perf_script_processor,delta_processor}

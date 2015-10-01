@@ -117,12 +117,17 @@ class PostProcessor(object):
 
             df1 = pd.DataFrame(self.df_dict)
             
-            del df
+            # self.df = self.df.drop(self.df.columns, axis=1)
+            # self.df = self.df.drop(self.df.index, axis=0)
+
             del _tmp
-            del df_dict
+            del self.df_dict
 
             df1['entry'] = self.df.entry
             df1['tstamp'] = self.df.tstamp
+
+            del self.df
+
             # rearrange columns
             cols = df1.columns.tolist()
             cols = cols[-2:] + cols[:-2]
@@ -145,20 +150,24 @@ class PostProcessor(object):
                 _tmp = df1.loc[df1['entry'].isin(pattern)]
                 # avoid inplace
                 _tmp = _tmp.drop(_tmp.columns[2:].tolist(), axis=1)
-                checklist_1 = _tmp.loc[_tmp['entry'] == pattern[-1]]
-                indices_1 = checklist.index.tolist()
+                ref_checklist = _tmp.loc[_tmp['entry'] == pattern[-1]]
+                ref_indices = ref_checklist.index.tolist()
                 data = []
 
-                for pat_3_loc in indices_1:
-                    x = _tmp.ix[:pat_3_loc]
-                    pat_2_loc = x[x.entry == pattern[-2]].iloc[-1].name
-                    pat_1_loc = x[x.entry == pattern[1]].iloc[-1].name
-                    pat_0_loc = x[x.entry == pattern[0]].iloc[-1].name
-                    data.append([_tmp.ix[pat_0_loc].tstamp,
-                                _tmp.ix[pat_1_loc].tstamp,
-                                _tmp.ix[pat_2_loc].tstamp,
-                                _tmp.ix[pat_3_loc].tstamp])
-                    _tmp = _tmp.ix[pat_3_loc:]
+                # import pdb; pdb.set_trace()
+                for pat_3_loc in ref_indices:
+                    try:
+                        x = _tmp.ix[:pat_3_loc]
+                        pat_2_loc = x[x.entry == pattern[-2]].iloc[-1].name
+                        pat_1_loc = x[x.entry == pattern[1]].iloc[-1].name
+                        pat_0_loc = x[x.entry == pattern[0]].iloc[-1].name
+                        data.append([_tmp.ix[pat_0_loc].tstamp,
+                                    _tmp.ix[pat_1_loc].tstamp,
+                                    _tmp.ix[pat_2_loc].tstamp,
+                                    _tmp.ix[pat_3_loc].tstamp])
+                        _tmp = _tmp.ix[pat_3_loc:]
+                    except:
+                        quit("ERROR: pattern entry not found in input dataset. I quit")
                     
                 loops = pd.DataFrame(data, columns=pattern)
                 # loops.loc[:,"kvm_exit_diffs"] = loops.loc[:,"kvm_exit"].diff()
@@ -226,4 +235,4 @@ if __name__=='__main__':
                 mode=args.mode)
         PP.prepare_delta()
     except Exception as E:
-        quit("%s\nUnable to execute. Refer to --help. I Quit!"%(E))
+        quit("ERROR: %s\nUnable to execute. Refer to --help. I Quit!"%(E))
