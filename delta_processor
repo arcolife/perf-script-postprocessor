@@ -90,6 +90,67 @@ class PostProcessor(object):
             except:
                 raise
 
+        pattern = ("kvm_exit", "syscallssys_exit_ppoll",\
+            "syscallssys_enter_io_submit", "syscallssys_exit_io_submit")
+
+        # To identify loops, I'm filtering last event in given pattern first, 
+        # noting down all corresponding indices, then looking for second last 
+        # event in the pattern from that dataframe, getting the last element 
+        # after filtering. This is apparently taking a lot of time.
+        
+        # TODO: put a check to see if all pattern entries are 
+        # present in the dataframe
+        buf_base = dict.fromkeys(pattern[:-1])
+        buf_mirror = buf_base.copy()
+        data = []                    
+        for i in range(len(self.df)):
+            if self.df.entry[i] == pattern[-1]:
+                buf_base[self.df.entry[i]] = self.df.tstamp[i]
+                data.append(buf_base.copy())
+            else:
+                buf_mirror[self.df.entry[i]] = self.df.tstamp[i]
+            if not None in buf_mirror.values():
+                buf_base = buf_mirror.copy()
+                buf_mirror = dict.fromkeys(pattern[:-1])
+
+        loops = pd.DataFrame(data, columns=pattern)
+
+        # loops.loc[:,"delta__exit_ppoll__kvm_exit"] = loops.loc[:,"kvm_exit"].diff()
+        loops.loc[:,"delta__exit_ppoll__kvm_exit"] = \
+                                loops.loc[:,"syscallssys_exit_ppoll"] - \
+                                 loops.loc[:,"kvm_exit"]
+        loops.loc[:,"delta__enter_io_submit__exit_ppoll"] = \
+                                loops.loc[:,"syscallssys_enter_io_submit"] - \
+                                 loops.loc[:,"syscallssys_exit_ppoll"]
+        loops.loc[:,"delta__io_submit"] = loops.loc[:,"syscallssys_exit_io_submit"] - \
+                                             loops.loc[:,"syscallssys_enter_io_submit"]
+                        
+        loops = loops.fillna(0)
+
+        print("*"*22)
+        print("delta__exit_ppoll__kvm_exit stats:")
+        print("\tStandard Dev: %s\n\tMean: %s\n\tMedian: %s" % \
+                    (loops.delta__exit_ppoll__kvm_exit.std(), 
+                     loops.delta__exit_ppoll__kvm_exit.mean(), 
+                     loops.delta__exit_ppoll__kvm_exit.median()))
+
+        print("="*22)
+        print("delta__enter_io_submit__exit_ppoll stats:")
+        print("\tStandard Dev: %s\n\tMean: %s\n\tMedian: %s" % \
+                    (loops.delta__enter_io_submit__exit_ppoll.std(), 
+                     loops.delta__enter_io_submit__exit_ppoll.mean(), 
+                     loops.delta__enter_io_submit__exit_ppoll.median()))
+
+        print("="*22)
+        print("delta__io_submit stats:")
+        print("\tStandard Dev: %s\n\tMean: %s\n\tMedian: %s" % \
+                    (loops.delta__io_submit.std(), 
+                     loops.delta__io_submit.mean(), 
+                     loops.delta__io_submit.median()))
+
+        print("*"*22)
+        loops.to_csv('%s.csv'%(os.path.join(self.result_path, 'loop_diff')))
+
         if self.mode==2:
             for entry in self.entries:
                 _tmp = self.df[(self.df['entry'] == \
@@ -102,109 +163,41 @@ class PostProcessor(object):
                     (os.path.join(self.result_path, entry)))
 
         else:
-            # if breakup isn't specified, join the dataframes
-            # into one single frame and dump that.
-            for entry in self.entries:
-                _tmp = self.df[(self.df['entry'] == \
-                                self._process_inverse(entry)) | \
-                                   (self.df['entry'] == \
-                                    self._process_inverse(entry, alternate=True))]
-                
-                _tmp.loc[:,"diff"] = _tmp.loc[:,"tstamp"].diff()
-                # avoid inplace
-                _tmp = _tmp.drop(_tmp.columns[[0, 1]], axis=1)
-                self.df_dict[entry] = _tmp['diff']
-
-            df1 = pd.DataFrame(self.df_dict)
-            
-            # self.df = self.df.drop(self.df.columns, axis=1)
-            # self.df = self.df.drop(self.df.index, axis=0)
-
-            del _tmp
-            del self.df_dict
-
-            df1['entry'] = self.df.entry
-            df1['tstamp'] = self.df.tstamp
-
-            del self.df
-
-            # rearrange columns
-            cols = df1.columns.tolist()
-            cols = cols[-2:] + cols[:-2]
-            df1 = df1[cols]
-
-            df1 = df1.fillna(0)
-            # dump results
-            df1.to_csv('%s.csv'%(os.path.join(self.result_path, 'delta_processed')))
-
-            if self.mode==1:
-                # TODO: optimize this
-                pattern = ("kvm_exit", "syscallssys_exit_ppoll",\
-                    "syscallssys_enter_io_submit", "syscallssys_exit_io_submit")
-
-                # To identify loops, I'm filtering last event in given pattern first, 
-                # noting down all corresponding indices, then looking for second last 
-                # event in the pattern from that dataframe, getting the last element 
-                # after filtering. This is apparently taking a lot of time.
-                
-                _tmp = df1.loc[df1['entry'].isin(pattern)]
-                # avoid inplace
-                _tmp = _tmp.drop(_tmp.columns[2:].tolist(), axis=1)
-                ref_checklist = _tmp.loc[_tmp['entry'] == pattern[-1]]
-                ref_indices = ref_checklist.index.tolist()
-                data = []
-
-                # import pdb; pdb.set_trace()
-                for pat_3_loc in ref_indices:
-                    try:
-                        x = _tmp.ix[:pat_3_loc]
-                        pat_2_loc = x[x.entry == pattern[-2]].iloc[-1].name
-                        pat_1_loc = x[x.entry == pattern[1]].iloc[-1].name
-                        pat_0_loc = x[x.entry == pattern[0]].iloc[-1].name
-                        data.append([_tmp.ix[pat_0_loc].tstamp,
-                                    _tmp.ix[pat_1_loc].tstamp,
-                                    _tmp.ix[pat_2_loc].tstamp,
-                                    _tmp.ix[pat_3_loc].tstamp])
-                        _tmp = _tmp.ix[pat_3_loc:]
-                    except:
-                        quit("ERROR: pattern entry not found in input dataset. I quit")
+            if not self.mode==3:
+                # if breakup isn't specified, join the dataframes
+                # into one single frame and dump that.
+                for entry in self.entries:
+                    _tmp = self.df[(self.df['entry'] == \
+                                    self._process_inverse(entry)) | \
+                                       (self.df['entry'] == \
+                                        self._process_inverse(entry, alternate=True))]
                     
-                loops = pd.DataFrame(data, columns=pattern)
-                # loops.loc[:,"delta__exit_ppoll__kvm_exit"] = loops.loc[:,"kvm_exit"].diff()
-                loops.loc[:,"delta__exit_ppoll__kvm_exit"] = \
-                                        loops.loc[:,"syscallssys_exit_ppoll"] - \
-                                         loops.loc[:,"kvm_exit"]
-                loops.loc[:,"delta__enter_io_submit__exit_ppoll"] = \
-                                        loops.loc[:,"syscallssys_enter_io_submit"] - \
-                                         loops.loc[:,"syscallssys_exit_ppoll"]
-                loops.loc[:,"delta__io_submit"] = loops.loc[:,"syscallssys_exit_io_submit"] - \
-                                                     loops.loc[:,"syscallssys_enter_io_submit"]
-                                
-                loops = loops.fillna(0)
+                    _tmp.loc[:,"diff"] = _tmp.loc[:,"tstamp"].diff()
+                    # avoid inplace
+                    _tmp = _tmp.drop(_tmp.columns[[0, 1]], axis=1)
+                    self.df_dict[entry] = _tmp['diff']
 
-                print("*"*22)
-                print("delta__exit_ppoll__kvm_exit stats:")
-                print("\tStandard Dev: %s\n\tMean: %s\n\tMedian: %s" % \
-                            (loops.delta__exit_ppoll__kvm_exit.std(), 
-                             loops.delta__exit_ppoll__kvm_exit.mean(), 
-                             loops.delta__exit_ppoll__kvm_exit.median()))
+                df1 = pd.DataFrame(self.df_dict)
+                
+                # self.df = self.df.drop(self.df.columns, axis=1)
+                # self.df = self.df.drop(self.df.index, axis=0)
 
-                print("="*22)
-                print("delta__enter_io_submit__exit_ppoll stats:")
-                print("\tStandard Dev: %s\n\tMean: %s\n\tMedian: %s" % \
-                            (loops.delta__enter_io_submit__exit_ppoll.std(), 
-                             loops.delta__enter_io_submit__exit_ppoll.mean(), 
-                             loops.delta__enter_io_submit__exit_ppoll.median()))
+                # del _tmp
+                # del self.df_dict
 
-                print("="*22)
-                print("delta__io_submit stats:")
-                print("\tStandard Dev: %s\n\tMean: %s\n\tMedian: %s" % \
-                            (loops.delta__io_submit.std(), 
-                             loops.delta__io_submit.mean(), 
-                             loops.delta__io_submit.median()))
+                df1['entry'] = self.df.entry
+                df1['tstamp'] = self.df.tstamp
 
-                print("*"*22)
-                loops.to_csv('%s.csv'%(os.path.join(self.result_path, 'loop_diff')))
+                # del self.df
+
+                # rearrange columns
+                cols = df1.columns.tolist()
+                cols = cols[-2:] + cols[:-2]
+                df1 = df1[cols]
+
+                df1 = df1.fillna(0)
+                # dump results
+                df1.to_csv('%s.csv'%(os.path.join(self.result_path, 'delta_processed')))
 
         print("Script was executed with Mode option %d.\nResults have been stored to: %s"\
             %(self.mode, self.result_path))

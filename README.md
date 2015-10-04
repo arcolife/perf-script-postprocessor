@@ -34,7 +34,8 @@ delta_processor --input=$DUMP_PATH'/perf_data.csv' --output=$DUMP_PATH
     - `Mode 0`: Produce `delta_processed.csv` with __all events together__[2].
     - `Mode 1`: In addition to mode 0, this calculates __loop statistics__[1].
     - `Mode 2`: breakup result into __per-event calculated delta csv files__.
-    
+    - `Mode 3`: only calculates __loop statistics__ (from perf_data.csv).
+
 * [1] Loop order:
 
 ``` kvm_exit -> sys_exit_ppoll -> sys_enter_io_submit -> sys_exit_io_submit ```
