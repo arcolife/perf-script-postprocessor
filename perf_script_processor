@@ -16,7 +16,7 @@ if [[ ! -z $DUMP_PATH ]]; then
 		    sed 's/://g' | sed 's/ /,/g' > ${DUMP_PATH%/}/perf_data.csv
 		# add header to csv file
 		sed -i '1s/^/tstamp,entry\n/' ${DUMP_PATH%/}/perf_data.csv
-	    delta_processor -i ${DUMP_PATH%/}/perf_data.csv -o $DUMP_PATH -m 0
+	    delta_processor -i ${DUMP_PATH%/}/perf_data.csv -o $DUMP_PATH -m 3
 		
 	elif [ -f ${DUMP_PATH%/}/raw_perf ]; then
 		cat ${DUMP_PATH%/}/raw_perf | grep qemu-kvm | awk -F' ' '{print $4,$5}' | \
@@ -24,11 +24,11 @@ if [[ ! -z $DUMP_PATH ]]; then
 		    sed 's/://g' | sed 's/ /,/g' > ${DUMP_PATH%/}/perf_data.csv
 		# add header to csv file
 		sed -i '1s/^/tstamp,entry\n/' ${DUMP_PATH%/}/perf_data.csv
-	    delta_processor -i ${DUMP_PATH%/}/perf_data.csv -o $DUMP_PATH -m 0
+	    delta_processor -i ${DUMP_PATH%/}/perf_data.csv -o $DUMP_PATH -m 3
 
 	elif [ -f ${DUMP_PATH%/}/perf_data.csv ]; then
 	    # run postprocessor on that
-	    delta_processor -i ${DUMP_PATH%/}/perf_data.csv -o $DUMP_PATH -m 0
+	    delta_processor -i ${DUMP_PATH%/}/perf_data.csv -o $DUMP_PATH -m 3
 	# else
 	# 	echo "ERROR! Failed to somehow write to intermediate result file perf_data.csv."
 	# fi
