@@ -22,7 +22,7 @@ class PostProcessor(object):
         self.mode = mode
         self.pattern = tuple(order)
         self.df_dict = {}
-        
+
     def load_data(self):
         try:
             self.df = pd.read_csv(self.file_path)
@@ -89,6 +89,7 @@ class PostProcessor(object):
         buf_mirror = buf_base.copy()
         data = []
 
+        # calculate sequential event loops (list of dicts)
         for i in range(len(self.df)):
             if self.df.entry[i] == self.pattern[-1]:
                 buf_base[self.df.entry[i]] = self.df.tstamp[i]
@@ -99,40 +100,28 @@ class PostProcessor(object):
                 buf_base = buf_mirror.copy()
                 buf_mirror = dict.fromkeys(self.pattern[:-1])
 
+        # form dataframe from calculated loops data 
         loops = pd.DataFrame(data, columns=self.pattern)
-        loops.loc[:,"delta__exit_ppoll__kvm_exit"] = \
-                                loops.loc[:,"syscallssys_exit_ppoll"] - \
-                                 loops.loc[:,"kvm_exit"]
-        loops.loc[:,"delta__enter_io_submit__exit_ppoll"] = \
-                                loops.loc[:,"syscallssys_enter_io_submit"] - \
-                                 loops.loc[:,"syscallssys_exit_ppoll"]
-        loops.loc[:,"delta__io_submit"] = loops.loc[:,"syscallssys_exit_io_submit"] - \
-                                             loops.loc[:,"syscallssys_enter_io_submit"]
+
+        # calculate intra-loop deltas
+        for i in range(len(self.pattern)-1):
+            current = "delta:%s__%s" % (self.pattern[i+1].lstrip('syscallssys_'), 
+                self.pattern[i].lstrip('syscallssys_'))
+            loops.loc[:,current] = loops.loc[:,self.pattern[i+1]] - \
+                                     loops.loc[:,self.pattern[i]]
         loops = loops.fillna(0)
-
-        print("*"*22)
-        print("delta__exit_ppoll__kvm_exit stats:")
-        print("\tStandard Dev: %s\n\tMean: %s\n\tMedian: %s" % \
-                    (loops.delta__exit_ppoll__kvm_exit.std(), 
-                     loops.delta__exit_ppoll__kvm_exit.mean(), 
-                     loops.delta__exit_ppoll__kvm_exit.median()))
-
-        print("="*22)
-        print("delta__enter_io_submit__exit_ppoll stats:")
-        print("\tStandard Dev: %s\n\tMean: %s\n\tMedian: %s" % \
-                    (loops.delta__enter_io_submit__exit_ppoll.std(), 
-                     loops.delta__enter_io_submit__exit_ppoll.mean(), 
-                     loops.delta__enter_io_submit__exit_ppoll.median()))
-
-        print("="*22)
-        print("delta__io_submit stats:")
-        print("\tStandard Dev: %s\n\tMean: %s\n\tMedian: %s" % \
-                    (loops.delta__io_submit.std(), 
-                     loops.delta__io_submit.mean(), 
-                     loops.delta__io_submit.median()))
-
-        print("*"*22)
         loops.to_csv('%s.csv'%(os.path.join(self.result_path, 'loop_diff')))
+
+        print("*"*22)
+        for i in range(len(self.pattern)-1):
+            current = "delta:%s__%s" % (self.pattern[i+1].lstrip('syscallssys_'), 
+                self.pattern[i].lstrip('syscallssys_'))
+            print("%s stats:" %(current))
+            print("\tStandard Dev: %s\n\tMean: %s\n\tMedian: %s" % \
+                        (loops[current].std(), 
+                         loops[current].mean(), 
+                         loops[current].median()))
+            print("="*22)
 
         if self.mode==2:
             for entry in self.entries:
