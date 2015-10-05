@@ -26,9 +26,13 @@ class PostProcessor(object):
     def load_data(self):
         try:
             self.df = pd.read_csv(self.file_path)
+            if self.mode == 3:
+                self.df = self.df[self.df.entry.isin(self.pattern)]
+                self.df = self.df.reset_index().drop('index', axis=1)
+
             self.df.convert_objects(convert_numeric=True)
-            self.df['tstamp'] = self.df.apply(lambda row: \
-                row.tstamp*1000000, axis=1)
+            # self.df['tstamp'] = self.df.apply(lambda row: \
+            #     row.tstamp*1000000, axis=1)
         except Exception as E:
             quit(E)
         
@@ -85,20 +89,16 @@ class PostProcessor(object):
         except AssertionError:
             quit("\nERROR: Pattern supplied doesn't exist in DataFrame")
 
-        buf_base = dict.fromkeys(self.pattern[:-1])
-        buf_mirror = buf_base.copy()
         data = []
 
+        indices = self.df[self.df.entry == self.pattern[-1]].index
+        pat_len = len(self.pattern)
+
         # calculate sequential event loops (list of dicts)
-        for i in range(len(self.df)):
-            if self.df.entry[i] == self.pattern[-1]:
-                buf_base[self.df.entry[i]] = self.df.tstamp[i]
-                data.append(buf_base.copy())
-            else:
-                buf_mirror[self.df.entry[i]] = self.df.tstamp[i]
-            if not None in buf_mirror.values():
-                buf_base = buf_mirror.copy()
-                buf_mirror = dict.fromkeys(self.pattern[:-1])
+        for i in range(len(indices)):
+            df1 = self.df.ix[i-pat_len:i]
+            data.append(dict(zip(df1.entry, df1.tstamp)))
+        # NOTE: df1.set_index('entry')['tstamp'].to_dict() is slower than zip()
 
         # form dataframe from calculated loops data 
         loops = pd.DataFrame(data, columns=self.pattern)
