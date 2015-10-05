@@ -18,6 +18,7 @@
 import os, sys
 import argparse
 import pandas as pd
+import configparser
 
 pd.options.mode.chained_assignment = None  # default='warn'
 
@@ -25,10 +26,11 @@ class PostProcessor(object):
     '''
     Form a DataFrame from the csv and utilize 
     inhouse functions to calculate delta. '''
-    def __init__(self, file_path='', result_path='', mode=2):
+    def __init__(self, file_path='', result_path='', order=[], mode=2,):
         self.file_path = file_path
         self.result_path = result_path
         self.mode = mode
+        self.pattern = tuple(order)
         self.df_dict = {}
         
     def load_data(self):
@@ -90,30 +92,32 @@ class PostProcessor(object):
             except:
                 raise
 
-        pattern = ("kvm_exit", "syscallssys_exit_ppoll",\
-            "syscallssys_enter_io_submit", "syscallssys_exit_io_submit")
-
-        # To identify loops, I'm filtering last event in given pattern first, 
+        # To identify loops, I'm filtering last event in given self.pattern first, 
         # noting down all corresponding indices, then looking for second last 
-        # event in the pattern from that dataframe, getting the last element 
+        # event in the self.pattern from that dataframe, getting the last element 
         # after filtering. This is apparently taking a lot of time.
-        
-        # TODO: put a check to see if all pattern entries are 
-        # present in the dataframe
-        buf_base = dict.fromkeys(pattern[:-1])
+        try:
+            # check if pattern actually exists
+            assert len(set(self.df['entry'].unique().tolist()) & \
+                set(self.pattern)) == len(self.pattern)
+        except:
+            quit("\nERROR: Pattern supplied doesn't exist in DataFrame")
+
+        buf_base = dict.fromkeys(self.pattern[:-1])
         buf_mirror = buf_base.copy()
-        data = []                    
+        data = []
+
         for i in range(len(self.df)):
-            if self.df.entry[i] == pattern[-1]:
+            if self.df.entry[i] == self.pattern[-1]:
                 buf_base[self.df.entry[i]] = self.df.tstamp[i]
                 data.append(buf_base.copy())
             else:
                 buf_mirror[self.df.entry[i]] = self.df.tstamp[i]
             if not None in buf_mirror.values():
                 buf_base = buf_mirror.copy()
-                buf_mirror = dict.fromkeys(pattern[:-1])
+                buf_mirror = dict.fromkeys(self.pattern[:-1])
 
-        loops = pd.DataFrame(data, columns=pattern)
+        loops = pd.DataFrame(data, columns=self.pattern)
 
         # loops.loc[:,"delta__exit_ppoll__kvm_exit"] = loops.loc[:,"kvm_exit"].diff()
         loops.loc[:,"delta__exit_ppoll__kvm_exit"] = \
@@ -218,20 +222,29 @@ if __name__=='__main__':
     kvm_exit -> sys_exit_ppoll -> sys_enter_io_submit -> sys_exit_io_submit""")
     # requiredNamed = parser.add_argument_group('required named arguments')
     parser.add_argument('-i', '--input', type=str, 
-        default='perf_data.csv', 
+        default='perf_data.csv',
         help='Absolute Path to input csv file')
     parser.add_argument('-m', '--mode', type=int, 
-        default=0,  
+        default=0,
         help='specify mode as per above documentation')
     parser.add_argument('-o', '--output', type=str, 
         default='/tmp/pp_results',
         help='Absolute Path to output dir')
+    parser.add_argument('-c', '--conf', type=str, 
+        default='/etc/delta_processor.conf',
+        help='Absolute Path to output dir')
 
-    args = parser.parse_args()
     try:
+        args = parser.parse_args()
+
+        config = configparser.ConfigParser()
+        config.read(args.conf)
+        order = config.get('Pattern', 'order').split()
+
         PP = PostProcessor(
                 file_path=args.input, 
                 result_path=args.output,
+                order=order,
                 mode=args.mode)
         PP.prepare_delta()
     except Exception as E:
