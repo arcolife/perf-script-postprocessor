@@ -94,36 +94,37 @@ class PostProcessor(object):
 
         ## calculate sequential event loops (list of dicts)
 
+	#import pdb; pdb.set_trace()
         ## ALGO 1
         ## Assumes events are sequential once pattern[-1] is found.
         ## NOTE: df1.set_index('entry')['tstamp'].to_dict() is slower 
         ## than zip()
-        indices = self.df[self.df.entry == self.pattern[-1]].index
-        pat_len = len(self.pattern)
-        for i in indices:
-            df1 = self.df.ix[i-(pat_len-1):i]
-            data.append(dict(zip(df1.entry, df1.tstamp)))
+        # indices = self.df[self.df.entry == self.pattern[-1]].index
+        # pat_len = len(self.pattern)
+        # for i in indices:
+        #     df1 = self.df.ix[i-(pat_len-1):i]
+        #     data.append(dict(zip(df1.entry, df1.tstamp)))
 
         ## ALGO 2
         ## Generic algo, gets latest n events in order of pattern
         ## once pattern[-1] is found.. 
-        # buf_base = dict.fromkeys(self.pattern[:-1])
-        # buf_mirror = buf_base.copy()
-        # # calculate sequential event loops (list of dicts)
-        # for i in range(len(self.df)):
-        #     if self.df.entry[i] == self.pattern[-1]:
-        #         buf_base[self.df.entry[i]] = self.df.tstamp[i]
-        #         data.append(buf_base.copy())
-        #     else:
-        #         buf_mirror[self.df.entry[i]] = self.df.tstamp[i]
-        #     if not None in buf_mirror.values():
-        #         buf_base = buf_mirror.copy()
-        #         buf_mirror = dict.fromkeys(self.pattern[:-1])
+        buf_base = dict.fromkeys(self.pattern[:-1])
+        buf_mirror = buf_base.copy()
+        # calculate sequential event loops (list of dicts)
+        for i in range(len(self.df)):
+            if self.df.entry[i] == self.pattern[-1]:
+                buf_base[self.df.entry[i]] = self.df.tstamp[i]
+		# import pdb; pdb.set_trace()
+                data.append(buf_base.copy())
+            else:
+                buf_mirror[self.df.entry[i]] = self.df.tstamp[i]
+            if not None in buf_mirror.values():
+                buf_base = buf_mirror.copy()
+                buf_mirror = dict.fromkeys(self.pattern[:-1])
 
         # form dataframe from calculated loops data 
         loops = pd.DataFrame(data, columns=self.pattern)
 
-        # import pdb; pdb.set_trace()
         # calculate intra-loop deltas
         for i in range(len(self.pattern)-1):
             current = "delta:%s__%s" % (self.pattern[i+1], 
