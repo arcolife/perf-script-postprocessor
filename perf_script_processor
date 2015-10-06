@@ -15,7 +15,7 @@ if [[ ! -z $DUMP_PATH ]]; then
     # run postprocessor on that
 	if [ -f ${DUMP_PATH%/}/perf.data ]; then
 		echo "Processing perf.data ..."
-		perf script | grep qemu-kvm | awk -F' ' '{print $4,$5,$6,$7}' | egrep $pattern | \
+		perf script | grep qemu-kvm | awk -F' ' '{print $4,$5,$6,$7}' | egrep $pattern | awk -F' ' '{print $1,$2}' | \
 		    sed 's/sched://g' | sed 's/kvm://g' | sed 's/syscalls://g' | \
 		    sed 's/://g' | sed 's/ /,/g' > ${DUMP_PATH%/}/perf_data.csv
 		# add header to csv file
@@ -24,7 +24,7 @@ if [[ ! -z $DUMP_PATH ]]; then
 		
 	elif [ -f ${DUMP_PATH%/}/raw_perf ]; then
 		echo "Processing raw_perf ..."
-		cat ${DUMP_PATH%/}/raw_perf | grep qemu-kvm | awk -F' ' '{print $4,$5,$6,$7}' | egrep $pattern | \
+		cat ${DUMP_PATH%/}/raw_perf | grep qemu-kvm | awk -F' ' '{print $4,$5,$6,$7}' | egrep $pattern | awk -F' ' '{print $1,$2}' | \
 		    sed 's/sched://g' | sed 's/kvm://g' | sed 's/syscalls://g' | \
 		    sed 's/://g' | sed 's/ /,/g' > ${DUMP_PATH%/}/perf_data.csv
 		# add header to csv file
