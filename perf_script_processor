@@ -14,7 +14,7 @@ if [[ ! -z $DUMP_PATH ]]; then
 	if [ -f ${DUMP_PATH%/}/perf.data ]; then
 		echo "Processing perf.data ..."
 		perf script | grep qemu-kvm | awk -F' ' '{print $4,$5}' | \
-		    sed 's/sched://g' | sed 's/kvm://g' | sed 's/syscall://g' | \
+		    sed 's/sched://g' | sed 's/kvm://g' | sed 's/syscalls://g' | \
 		    sed 's/://g' | sed 's/ /,/g' > ${DUMP_PATH%/}/perf_data.csv
 		# add header to csv file
 		sed -i '1s/^/tstamp,entry\n/' ${DUMP_PATH%/}/perf_data.csv
