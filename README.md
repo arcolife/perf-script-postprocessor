@@ -58,10 +58,10 @@ delta_processor --input=$DUMP_PATH'/perf_data.csv' --output=$DUMP_PATH --conf=<c
 [Pattern] 
 
 # native
-order = kvm_exit syscallssys_exit_ppoll syscallssys_enter_io_submit syscallssys_exit_io_submit
+order = kvm_exit sys_exit_ppoll sys_enter_io_submit sys_exit_io_submit
 
 # thread
-# order = kvm_exit syscallssys_exit_ppoll syscallssys_enter_pread64 syscallssys_exit_pread64
+# order = kvm_exit sys_exit_ppoll sys_enter_pread64 sys_exit_pread64
 ```
 
 * [2] Events are like this:
@@ -69,12 +69,12 @@ order = kvm_exit syscallssys_exit_ppoll syscallssys_enter_io_submit syscallssys_
 	```
 		kvm___
 		sched_switch
-		syscallssys__futex
-		syscallssys__io_getevents
-		syscallssys__io_submit
-		syscallssys__ppoll
-		syscallssys__pwrite64
-		syscallssys__pwritev
+		sys__futex
+		sys__io_getevents
+		sys__io_submit
+		sys__ppoll
+		sys__pwrite64
+		sys__pwritev
 	```
 	
 	For detailed list, refer this [perf.txt](https://gist.githubusercontent.com/staticfloat/ad064cd6ae653f2afba7/raw/324a81a7423dd94226bd7ad3d1035a517612720f/perf.txt)	
@@ -107,8 +107,8 @@ of postprocessor script.
 	The script at the beginning of the test, in a few sec, would produce an stdout like this
 	```
 	Unique metrics found:
-	  syscallssys__ppoll
-	  syscallssys__pread64
+	  sys__ppoll
+	  sys__pread64
 	  kvm___
 	```
 	

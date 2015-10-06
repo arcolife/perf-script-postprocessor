@@ -126,8 +126,8 @@ class PostProcessor(object):
         # import pdb; pdb.set_trace()
         # calculate intra-loop deltas
         for i in range(len(self.pattern)-1):
-            current = "delta:%s__%s" % (self.pattern[i+1].lstrip('syscallssys_'), 
-                self.pattern[i].lstrip('syscallssys_'))
+            current = "delta:%s__%s" % (self.pattern[i+1], 
+                self.pattern[i])
             loops.loc[:,current] = loops.loc[:,self.pattern[i+1]] - \
                                      loops.loc[:,self.pattern[i]]
         loops = loops.fillna(0)
@@ -135,8 +135,8 @@ class PostProcessor(object):
 
         print("*"*22)
         for i in range(len(self.pattern)-1):
-            current = "delta:%s__%s" % (self.pattern[i+1].lstrip('syscallssys_'), 
-                self.pattern[i].lstrip('syscallssys_'))
+            current = "delta:%s__%s" % (self.pattern[i+1], 
+                self.pattern[i])
             print("%s stats:" %(current))
             print("\tStandard Dev: %s\n\tMean: %s\n\tMedian: %s" % \
                         (loops[current].std(), 
