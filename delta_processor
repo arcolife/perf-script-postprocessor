@@ -217,7 +217,7 @@ if __name__=='__main__':
 
         config = configparser.ConfigParser()
         config.read(args.conf)
-        order = config.get('Pattern', 'order').split()
+        order = config.get('Pattern', 'order').split('|')
 
         PP = PostProcessor(
                 file_path=args.input, 

@@ -7,8 +7,10 @@
 
 - [ ] perform ANOVA to observe change significance.
 
-- [ ] Optimize loop stats calculation
+- [x] Optimize loop stats calculation
 
 - [ ] Add support to filter by pid
 
-- [ ] add config file to support flexible pattern suppliment to the code
+- [x] add config file to support flexible pattern suppliment to the code
+
+- [x] filter pattern at the time of grep'g and sed'g the raw data, to reduce load time in csv produced later
