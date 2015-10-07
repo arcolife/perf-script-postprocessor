@@ -94,7 +94,6 @@ class PostProcessor(object):
 
         ## calculate sequential event loops (list of dicts)
 
-	#import pdb; pdb.set_trace()
         ## ALGO 1
         ## Assumes events are sequential once pattern[-1] is found.
         ## NOTE: df1.set_index('entry')['tstamp'].to_dict() is slower 
@@ -113,12 +112,30 @@ class PostProcessor(object):
         # calculate sequential event loops (list of dicts)
         for i in range(len(self.df)):
             if self.df.entry[i] == self.pattern[-1]:
+                # if last entry is encountered, update data[]
                 buf_base[self.df.entry[i]] = self.df.tstamp[i]
-		# import pdb; pdb.set_trace()
                 data.append(buf_base.copy())
             else:
-                buf_mirror[self.df.entry[i]] = self.df.tstamp[i]
+                if not buf_mirror[self.df.entry[i]]:
+                    # if the entry's current tstamp is set to None; update
+                    buf_mirror[self.df.entry[i]] = self.df.tstamp[i]
+                else:
+                    # find the next higher entry in pattern order; then,
+                    # find out whether current entry's tstamp is less than 
+                    # higher priority entry's tstamp; if so, update mirror.
+                    pat_next_ix = self.pattern.index(self.df.entry[i]) + 1
+                    if buf_mirror[self.pattern[pat_next_ix]]:
+                        if self.df.tstamp[i] < buf_mirror[self.pattern[pat_next_ix]]:
+                            buf_mirror[self.df.entry[i]] = self.df.tstamp[i]
+                    else:
+                        # => In pattern, the next higher priority event's tstamp
+                        # is currently None; so we can now righteously update 
+                        # current entry's tstamp in mirror
+                        buf_mirror[self.df.entry[i]] = self.df.tstamp[i]
+
             if not None in buf_mirror.values():
+                # if mirror buffer is found to have latest copies; 
+                # reflect values in base buffer and empty mirror
                 buf_base = buf_mirror.copy()
                 buf_mirror = dict.fromkeys(self.pattern[:-1])
 
