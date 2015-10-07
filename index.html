@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="UTF-8">
+    <title>Perf-script-postprocessor by arcolife</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+  </head>
+  <body>
+    <section class="page-header">
+      <h1 class="project-name">Perf-script-postprocessor</h1>
+      <h2 class="project-tagline">Read perf.data (created by perf record) and process trace output to display delta</h2>
+      <a href="https://github.com/arcolife/perf-script-postprocessor" class="btn">View on GitHub</a>
+      <a href="https://github.com/arcolife/perf-script-postprocessor/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/arcolife/perf-script-postprocessor/tarball/master" class="btn">Download .tar.gz</a>
+    </section>
+
+    <section class="main-content">
+      <h1>
+<a id="perf-script-postprocessor" class="anchor" href="#perf-script-postprocessor" aria-hidden="true"><span class="octicon octicon-link"></span></a>perf-script-postprocessor</h1>
+
+<p>This calculates delta (difference of timestamps from various
+entry/exit points from events recorded) from the trace output,
+which is produced by using the <code>perf script</code> command, which in turn,
+uses the perf.data file produced by using the <code>perf record</code> command,
+a set of utilities,which is provided under the package <a href="https://github.com/brendangregg/perf-tools">perf-tools</a></p>
+
+<h2>
+<a id="installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>INSTALLATION</h2>
+
+<p><code>$ sudo ./install</code></p>
+
+<h2>
+<a id="usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>USAGE</h2>
+
+<pre><code>$ perf_script_processor &lt;dir path&gt;
+</code></pre>
+
+<p><code>&lt;dir path&gt;</code> is where one of the following exists:</p>
+
+<ul>
+<li>perf.data -- binary file. If you're running this tool on perf.data, make sure
+    you're running it from the system where the binary was generated</li>
+<li>raw_perf -- plain text output when <code>perf script</code> is run on folder containing perf.data</li>
+<li>perf_data.csv -- generated in the process of generating results</li>
+</ul>
+
+<h4>
+<a id="explanation" class="anchor" href="#explanation" aria-hidden="true"><span class="octicon octicon-link"></span></a>EXPLANATION</h4>
+
+<p><code>perf_scirpt_processor</code> calls a python script <code>delta_processor</code> with options set to default as follows:</p>
+
+<p><code>delta_processor -i ${DUMP_PATH%/}/perf_data.csv -o $DUMP_PATH -m 3</code></p>
+
+<p>However if you wanna use the <code>delta_processor</code> script directly, to utilize more options, use it like this:</p>
+
+<pre><code>DUMP_PATH='/tmp/pp_results/'
+
+delta_processor --input=$DUMP_PATH'/perf_data.csv' --output=$DUMP_PATH --conf=&lt;conf path&gt; --mode=&lt;0,1,2,3&gt;
+
+</code></pre>
+
+<ul>
+<li><p>Either set an env var DUMP_PATH as you would like it to be 
+and use that throughout the session, or supply a custom path.. 
+Just ensure that script has write permssions to the folder.</p></li>
+<li><p>Generate delta of events for data from <code>perf script</code>[3]. </p></li>
+<li>
+<p>This script runs in 3 modes. Those being:</p>
+
+<ul>
+<li>
+<code>Mode 0</code>: Produce <code>delta_processed.csv</code> with <strong>all events together</strong>[2].</li>
+<li>
+<code>Mode 1</code>: In addition to mode 0, this calculates <strong>loop statistics</strong>[1].</li>
+<li>
+<code>Mode 2</code>: breakup result into <strong>per-event calculated delta csv files</strong>.</li>
+<li>
+<code>Mode 3</code>: only calculates <strong>loop statistics</strong> (from perf_data.csv).</li>
+</ul>
+</li>
+<li><p>[1] Set this in <code>/etc/delta_processor.conf</code>. Default is as below:</p></li>
+</ul>
+
+<pre><code>[Pattern] 
+
+# native
+order = kvm_exit sys_exit_ppoll sys_enter_io_submit sys_exit_io_submit
+
+# thread
+# order = kvm_exit sys_exit_ppoll sys_enter_pread64 sys_exit_pread64
+</code></pre>
+
+<ul>
+<li>
+<p>[2] Events are like this:</p>
+
+<pre><code>    kvm___
+    sched_switch
+    sys__futex
+    sys__io_getevents
+    sys__io_submit
+    sys__ppoll
+    sys__pwrite64
+    sys__pwritev
+</code></pre>
+
+<p>For detailed list, refer this <a href="https://gist.githubusercontent.com/staticfloat/ad064cd6ae653f2afba7/raw/324a81a7423dd94226bd7ad3d1035a517612720f/perf.txt">perf.txt</a> </p>
+</li>
+<li><p>[3] Check more options for script through <code>$ delta_processor -h</code></p></li>
+</ul>
+
+<p>Note: 
+perf_data.csv is produced by using the perf_script_processor command.
+This is incase, one has already produced the csv file from a previous run
+of postprocessor script.</p>
+
+<h2>
+<a id="faq" class="anchor" href="#faq" aria-hidden="true"><span class="octicon octicon-link"></span></a>FAQ</h2>
+
+<ul>
+<li>
+<p>Why are graphs not generated for the results?</p>
+
+<p>The flame graphs can be generated for such a dataset. Refer to <a href="http://www.brendangregg.com/perf.html#FlameGraphs">this blog</a>. But if one needs to see
+the y axis points, well they're really present in a huge amount, ofcourse,
+which could be handled through analytical methods later on. But for now,
+this doesn't support such analysis. (given the number of loops in resultant data). 
+Hence we leave it to only producing a delta in a csv file.</p>
+</li>
+<li>
+<p>How much time does it take for the tool to generate results?</p>
+
+<p>Depends on the size of your extracted data (plain text) from perf.data. 
+For a 1.5 Gb raw_perf, the script takes about 40-45 secs on an Intel model 
+<code>name   : Intel(R) Xeon(R) CPU X5365  @ 3.00GHz</code>. </p>
+</li>
+<li>
+<p>How do I know the script isn't stuck and is actually running?</p>
+
+<p>The script at the beginning of the test, in a few sec, would produce an stdout like this</p>
+
+<pre><code>Unique metrics found:
+  sys__ppoll
+  sys__pread64
+  kvm___
+</code></pre>
+
+<p>This means the data has been loaded, and keys have been processed. It then calls
+the <code>prepare_delta()</code> method which processed loop deltas. The result of that would 
+add on to the stdout like this:</p>
+
+<pre><code> **********************
+ delta:exit_ppoll__kvm_exit stats:
+  Standard Dev: xxx
+  Mean: xxx
+  Median: xxx
+ ======================
+ delta:enter_pread64__exit_ppoll stats:
+  Standard Dev: xxx
+  Mean: xxx
+  Median: xxx
+ ======================
+ delta:exit_pread64__enter_pread64 stats:
+  Standard Dev: xxx
+  Mean: xxx
+  Median: xxx
+ ======================
+ Script was executed with Mode option 3.
+ Results have been stored to: thread/
+ Time taken -- prepare_delta() -- 41.4485499859
+</code></pre>
+
+<p>In addition, it will produce a  <code>loop_diff.csv</code> and a <code>perf_data.csv</code> in the output dir.</p>
+
+<p>If it doesn't, Well <img class="emoji" title=":shit:" alt=":shit:" src="https://assets-cdn.github.com/images/icons/emoji/unicode/1f4a9.png" height="20" width="20" align="absmiddle"> . </p>
+</li>
+</ul>
+
+<h2>
+<a id="license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>LICENSE</h2>
+
+<p>GPL V3</p>
+
+<p><a href="https://bitdeli.com/free" title="Bitdeli Badge"><img src="https://d2weczhvl823v0.cloudfront.net/arcolife/perf-script-postprocessor/trend.png" alt="Bitdeli Badge"></a></p>
+
+      <footer class="site-footer">
+        <span class="site-footer-owner"><a href="https://github.com/arcolife/perf-script-postprocessor">Perf-script-postprocessor</a> is maintained by <a href="https://github.com/arcolife">arcolife</a>.</span>
+
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
+      </footer>
+
+    </section>
+
+  
+  </body>
+</html>
