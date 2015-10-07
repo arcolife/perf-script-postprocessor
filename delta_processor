@@ -11,6 +11,7 @@ import argparse
 import pandas as pd
 import configparser
 
+sys.stdout = open('delta_output.log', 'w')
 pd.options.mode.chained_assignment = None  # default='warn'
 
 class PostProcessor(object):
