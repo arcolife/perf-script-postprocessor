@@ -28,13 +28,23 @@ class PostProcessor(object):
     def load_data(self):
         try:
             self.df = pd.read_csv(self.file_path)
-            if self.mode == 3:
-                self.df = self.df[self.df.entry.isin(self.pattern)]
-                self.df = self.df.reset_index().drop('index', axis=1)
 
-            self.df.convert_objects(convert_numeric=True)
+            # filter pattern in pandas
+            # needed when pattern filter in perf_script_processor 
+            # is not applied..
+            # if self.mode == 3:
+                # self.df = self.df[self.df.entry.isin(self.pattern)]
+                # self.df = self.df.reset_index().drop('index', axis=1)
+
+            # if need be
+            # self.df.convert_objects(convert_numeric=True)
+
+            # self.df.tstamp = self.df.tstamp.multiply(1000000)
+            # OR
+            # This is slower than above method
             # self.df['tstamp'] = self.df.apply(lambda row: \
             #     row.tstamp*1000000, axis=1)
+
         except Exception as E:
             quit(E)
         

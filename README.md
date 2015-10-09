@@ -23,6 +23,8 @@ $ perf_script_processor <dir path>
 - raw_perf -- plain text output when `perf script` is run on folder containing perf.data
 - perf_data.csv -- generated in the process of generating results
 
+NOTE: The stats at the end of run, will be stored in `delta_output.log` in folder where you've generate the output.
+
 #### EXPLANATION 
 
 `perf_scirpt_processor` calls a python script `delta_processor` with options set to default as follows:
@@ -58,10 +60,11 @@ delta_processor --input=$DUMP_PATH'/perf_data.csv' --output=$DUMP_PATH --conf=<c
 [Pattern] 
 
 # native
-order = kvm_exit sys_exit_ppoll sys_enter_io_submit sys_exit_io_submit
+order = kvm_exit|sys_exit_ppoll|sys_enter_io_submit|sys_exit_io_submit|sys_enter_io_getevents|sys_exit_io_getevents
 
 # thread
-# order = kvm_exit sys_exit_ppoll sys_enter_pread64 sys_exit_pread64
+# order = kvm_exit|sys_exit_ppoll|sys_enter_pread64|sys_exit_pread64
+
 ```
 
 * [2] Events are like this:
