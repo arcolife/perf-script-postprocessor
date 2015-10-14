@@ -1,2 +1,0 @@
-,kvm_exit,sys_exit_ppoll,sys_enter_io_submit,sys_exit_io_submit,sys_enter_io_getevents,sys_exit_io_getevents,delta:sys_exit_ppoll__kvm_exit,delta:sys_enter_io_submit__sys_exit_ppoll,delta:sys_exit_io_submit__sys_enter_io_submit,delta:sys_enter_io_getevents__sys_exit_io_submit,delta:sys_exit_io_getevents__sys_enter_io_getevents
-0,2427107.654949,2427107.656069,2427107.656579,2427107.656586,2427107.65751,2427107.657512,0.0011199996806681156,0.0005100001581013203,7.000286132097244e-06,0.000923999585211277,2.00001522898674e-06

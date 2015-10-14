@@ -1,0 +1,35 @@
+
+**********************
+Unique metrics found:
+	sys__ppoll
+	kvm_inj_virq
+	sys__io_getevents
+	sys__io_submit
+	kvm___
+
+**********************
+delta:sys_exit_ppoll__kvm_exit stats:
+	Standard Dev: nan
+	Mean: 0.00111999968067
+	Median: 0.00111999968067
+======================
+delta:sys_enter_io_submit__sys_exit_ppoll stats:
+	Standard Dev: nan
+	Mean: 0.000510000158101
+	Median: 0.000510000158101
+======================
+delta:sys_exit_io_submit__sys_enter_io_submit stats:
+	Standard Dev: nan
+	Mean: 7.0002861321e-06
+	Median: 7.0002861321e-06
+======================
+delta:sys_enter_io_getevents__sys_exit_io_submit stats:
+	Standard Dev: nan
+	Mean: 0.000923999585211
+	Median: 0.000923999585211
+======================
+delta:sys_exit_io_getevents__sys_enter_io_getevents stats:
+	Standard Dev: nan
+	Mean: 2.00001522899e-06
+	Median: 2.00001522899e-06
+======================

@@ -89,16 +89,12 @@ class PostProcessor(object):
         self._unique_metrics()
 
         try:
-            if not os.path.exists(self.result_path):
-                os.mkdir(self.result_path)
             # check if loop_order actually exists
             assert len(set(self.df['entry'].unique().tolist()) & \
-                set(self.loop_order)) == len(self.loop_order)
-        except OSError as E:
-            quit(E)
+                       set(self.loop_order)) == len(self.loop_order)
         except AssertionError:
             quit("\nERROR: loop_order supplied doesn't exist in DataFrame")
-
+        
         data = []
 
         ## calculate sequential event loops (list of dicts)
@@ -211,9 +207,10 @@ if __name__=='__main__':
 
     try:
         args = parser.parse_args()
+        if not os.path.exists(args.output):
+            os.mkdir(args.output)
         # sys.stdout = open(args.log, 'w')
         log = open(args.log, 'w')
-
         config = configparser.ConfigParser()
         config.read(args.conf)
         order = config.get(test_types[args.type], 'order').split('|')
@@ -224,12 +221,15 @@ if __name__=='__main__':
                 order=order,
                 mode=args.mode,
                 log=log)
+
         a = time.time()
         PP.prepare_delta()
-        b = time.time()
-        
+        b = time.time()        
+
         print("\nTime taken -- prepare_delta() -- %s\n" % (b-a))
         log.close()
 
+    except OSError as E:
+        quit(E)
     except Exception as E:
         quit("ERROR: %s\nUnable to execute. Refer to --help. I Quit!"%(E))
