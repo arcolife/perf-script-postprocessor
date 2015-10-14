@@ -14,3 +14,13 @@
 - [x] add config file to support flexible pattern suppliment to the code
 
 - [x] filter pattern at the time of grep'g and sed'g the raw data, to reduce load time in csv produced later
+
+- [ ] Better use of reason part of `perf script` output to provide detailed statistics
+
+- [ ] Implement submission, completion latencies from conf file pattern
+
+- [ ] Separate all latencies in different files.
+
+- [ ] Get visualizations
+
+- [ ] Better UI
