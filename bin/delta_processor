@@ -11,29 +11,27 @@ import argparse
 import pandas as pd
 import configparser
 
-sys.stdout = open('delta_output.log', 'w')
-pd.options.mode.chained_assignment = None  # default='warn'
-
 class PostProcessor(object):
     '''
     Form a DataFrame from the csv and utilize 
     inhouse functions to calculate delta. '''
-    def __init__(self, file_path='', result_path='', order=[], mode=2,):
+    def __init__(self, file_path='', result_path='', order=[], mode=2, log=None):
         self.file_path = file_path
         self.result_path = result_path
         self.mode = mode
-        self.pattern = tuple(order)
+        self.loop_order = tuple(order)
         self.df_dict = {}
+        self.log_file = log
 
     def load_data(self):
         try:
             self.df = pd.read_csv(self.file_path)
 
-            # filter pattern in pandas
-            # needed when pattern filter in perf_script_processor 
+            # filter loop_order in pandas
+            # needed when loop_order filter in perf_script_processor 
             # is not applied..
-            # if self.mode == 3:
-                # self.df = self.df[self.df.entry.isin(self.pattern)]
+            # if self.mode == 0:
+                # self.df = self.df[self.df.entry.isin(self.loop_order)]
                 # self.df = self.df.reset_index().drop('index', axis=1)
 
             # if need be
@@ -82,8 +80,8 @@ class PostProcessor(object):
         if pd.np.nan in self.entries:
             self.entries.remove(pd.np.nan)
         self.entries = set([self._process(i) for i in self.entries])
-        print("*"*22)
-        print("Unique metrics found:\n\t%s"%'\n\t'.join(self.entries))
+        self.log_file.write("\n" + "*"*22)
+        self.log_file.write("\nUnique metrics found:\n\t%s\n" % '\n\t'.join(self.entries))
 
     def prepare_delta(self):
         self.load_data()
@@ -93,87 +91,78 @@ class PostProcessor(object):
         try:
             if not os.path.exists(self.result_path):
                 os.mkdir(self.result_path)
-            # check if pattern actually exists
+            # check if loop_order actually exists
             assert len(set(self.df['entry'].unique().tolist()) & \
-                set(self.pattern)) == len(self.pattern)
+                set(self.loop_order)) == len(self.loop_order)
         except OSError as E:
             quit(E)
         except AssertionError:
-            quit("\nERROR: Pattern supplied doesn't exist in DataFrame")
+            quit("\nERROR: loop_order supplied doesn't exist in DataFrame")
 
         data = []
 
         ## calculate sequential event loops (list of dicts)
-
-        ## ALGO 1
-        ## Assumes events are sequential once pattern[-1] is found.
-        ## NOTE: df1.set_index('entry')['tstamp'].to_dict() is slower 
-        ## than zip()
-        # indices = self.df[self.df.entry == self.pattern[-1]].index
-        # pat_len = len(self.pattern)
-        # for i in indices:
-        #     df1 = self.df.ix[i-(pat_len-1):i]
-        #     data.append(dict(zip(df1.entry, df1.tstamp)))
-
-        ## ALGO 2
-        ## Generic algo, gets latest n events in order of pattern
-        ## once pattern[-1] is found.. 
-        buf_base = dict.fromkeys(self.pattern[:-1])
+        buf_base = dict.fromkeys(self.loop_order[:-1])
         buf_mirror = buf_base.copy()
         # calculate sequential event loops (list of dicts)
-        for i in range(len(self.df)):
-            if self.df.entry[i] == self.pattern[-1]:
+        self._df = self.df[self.df.entry.isin(self.loop_order)]
+        self._df = self._df.reset_index().drop('index', axis=1)
+        for i in range(len(self._df)):
+            if self._df.entry[i] == self.loop_order[-1]:
                 # if last entry is encountered, update data[]
-                buf_base[self.df.entry[i]] = self.df.tstamp[i]
+                buf_base[self._df.entry[i]] = self._df.tstamp[i]
                 data.append(buf_base.copy())
             else:
-                if not buf_mirror[self.df.entry[i]]:
+                if not buf_mirror[self._df.entry[i]]:
                     # if the entry's current tstamp is set to None; update
-                    buf_mirror[self.df.entry[i]] = self.df.tstamp[i]
+                    buf_mirror[self._df.entry[i]] = self._df.tstamp[i]
                 else:
-                    # find the next higher entry in pattern order; then,
+                    # find the next higher entry in loop_order order; then,
                     # find out whether current entry's tstamp is less than 
                     # higher priority entry's tstamp; if so, update mirror.
-                    pat_next_ix = self.pattern.index(self.df.entry[i]) + 1
-                    if buf_mirror[self.pattern[pat_next_ix]]:
-                        if self.df.tstamp[i] < buf_mirror[self.pattern[pat_next_ix]]:
-                            buf_mirror[self.df.entry[i]] = self.df.tstamp[i]
+                    pat_next_ix = self.loop_order.index(self._df.entry[i]) + 1
+                    if buf_mirror.get(self.loop_order[pat_next_ix]):
+                        if self._df.tstamp[i] < buf_mirror[self.loop_order[pat_next_ix]]:
+                            buf_mirror[self._df.entry[i]] = self._df.tstamp[i]
                     else:
-                        # => In pattern, the next higher priority event's tstamp
+                        # => In loop_order, the next higher priority event's tstamp
                         # is currently None; so we can now righteously update 
                         # current entry's tstamp in mirror
-                        buf_mirror[self.df.entry[i]] = self.df.tstamp[i]
+                        buf_mirror[self._df.entry[i]] = self._df.tstamp[i]
 
             if not None in buf_mirror.values():
                 # if mirror buffer is found to have latest copies; 
                 # reflect values in base buffer and empty mirror
                 buf_base = buf_mirror.copy()
-                buf_mirror = dict.fromkeys(self.pattern[:-1])
+                buf_mirror = dict.fromkeys(self.loop_order[:-1])
+
+        del self._df
 
         # form dataframe from calculated loops data 
-        loops = pd.DataFrame(data, columns=self.pattern)
+        loops = pd.DataFrame(data, columns=self.loop_order)
 
         # calculate intra-loop deltas
-        for i in range(len(self.pattern)-1):
-            current = "delta:%s__%s" % (self.pattern[i+1], 
-                self.pattern[i])
-            loops.loc[:,current] = loops.loc[:,self.pattern[i+1]] - \
-                                     loops.loc[:,self.pattern[i]]
+        for i in range(len(self.loop_order)-1):
+            current = "delta:%s__%s" % (self.loop_order[i+1], 
+                self.loop_order[i])
+            loops.loc[:,current] = loops.loc[:,self.loop_order[i+1]] - \
+                                     loops.loc[:,self.loop_order[i]]
         loops = loops.fillna(0)
         loops.to_csv('%s.csv'%(os.path.join(self.result_path, 'loop_diff')))
 
-        print("*"*22)
-        for i in range(len(self.pattern)-1):
-            current = "delta:%s__%s" % (self.pattern[i+1], 
-                self.pattern[i])
-            print("%s stats:" %(current))
-            print("\tStandard Dev: %s\n\tMean: %s\n\tMedian: %s" % \
+        self.log_file.write("\n" + "*"*22)
+        for i in range(len(self.loop_order)-1):
+            current = "delta:%s__%s" % (self.loop_order[i+1], 
+                self.loop_order[i])
+            self.log_file.write("\n%s stats:" %(current))
+            self.log_file.write("\n\tStandard Dev: %s\n\tMean: %s\n\tMedian: %s" % \
                         (loops[current].std(), 
                          loops[current].mean(), 
                          loops[current].median()))
-            print("="*22)
+            self.log_file.write("\n" + "="*22)
+        self.log_file.write("\n")
 
-        if self.mode==2:
+        if self.mode==1:
             for entry in self.entries:
                 _tmp = self.df[(self.df['entry'] == \
                                 self._process_inverse(entry)) |\
@@ -182,35 +171,7 @@ class PostProcessor(object):
                 _tmp.set_index('entry').diff().to_csv('%s.csv' % \
                     (os.path.join(self.result_path, entry)))
 
-        else:
-            if not self.mode==3:
-                # if breakup isn't specified, join the dataframes
-                # into one single frame and dump that.
-                for entry in self.entries:
-                    _tmp = self.df[(self.df['entry'] == \
-                                    self._process_inverse(entry)) | \
-                                       (self.df['entry'] == \
-                                        self._process_inverse(entry, alternate=True))]
-                    
-                    _tmp.loc[:,"diff"] = _tmp.loc[:,"tstamp"].diff()
-                    # avoid inplace
-                    _tmp = _tmp.drop(_tmp.columns[[0, 1]], axis=1)
-                    self.df_dict[entry] = _tmp['diff']
-
-                df1 = pd.DataFrame(self.df_dict)
-                df1['entry'] = self.df.entry
-                df1['tstamp'] = self.df.tstamp
-
-                # rearrange columns
-                cols = df1.columns.tolist()
-                cols = cols[-2:] + cols[:-2]
-                df1 = df1[cols]
-
-                df1 = df1.fillna(0)
-                # dump results
-                df1.to_csv('%s.csv'%(os.path.join(self.result_path, 'delta_processed')))
-
-        print("Script was executed with Mode option %d.\nResults have been stored to: %s"\
+        print("\nScript was executed with Mode option %d.\nResults have been stored to: %s"\
             %(self.mode, self.result_path))
 
 
@@ -219,14 +180,12 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter, 
     description="""
     Generate delta of entry/exit points for data from `perf script. 
-    This script runs in 3 modes. Those being:
+    This script runs in following modes:
 
-    Mode 0: Produce `delta_processed.csv` with all events together.
-    Mode 1: In addition to mode 0, this calculates loop statistics(*)
-    Mode 2: breakup result into per-event calculated delta csv files.
-    
-    *Loop order:
-    kvm_exit -> sys_exit_ppoll -> sys_enter_io_submit -> sys_exit_io_submit""")
+    - `Mode 0`: Produce __loop statistics__[1] with __all events together__.
+    - `Mode 1`: breakup result into __per-event calculated delta csv files__.
+
+    *Loop order: default given under 'order=' in delta_processor.conf""")
     # requiredNamed = parser.add_argument_group('required named arguments')
     parser.add_argument('-i', '--input', type=str, 
         default='perf_data.csv',
@@ -240,22 +199,37 @@ if __name__=='__main__':
     parser.add_argument('-c', '--conf', type=str, 
         default='/etc/delta_processor.conf',
         help='Absolute Path to output dir')
+    parser.add_argument('-t', '--type', type=int, 
+        default=0,
+        help='Define type of test: 0: Native | 1: Threads')
+    parser.add_argument('-l', '--log', type=str, 
+        default='delta_output.log',
+        help='Log output to file..')
+
+    test_types = { 0: 'Native', 1: 'Threads'}
+    pd.options.mode.chained_assignment = None  # default='warn'
 
     try:
         args = parser.parse_args()
+        # sys.stdout = open(args.log, 'w')
+        log = open(args.log, 'w')
 
         config = configparser.ConfigParser()
         config.read(args.conf)
-        order = config.get('Pattern', 'order').split('|')
+        order = config.get(test_types[args.type], 'order').split('|')
 
         PP = PostProcessor(
                 file_path=args.input, 
                 result_path=args.output,
                 order=order,
-                mode=args.mode)
+                mode=args.mode,
+                log=log)
         a = time.time()
         PP.prepare_delta()
         b = time.time()
-        print("Time taken -- prepare_delta() -- %s" % (b-a))
+        
+        print("\nTime taken -- prepare_delta() -- %s\n" % (b-a))
+        log.close()
+
     except Exception as E:
         quit("ERROR: %s\nUnable to execute. Refer to --help. I Quit!"%(E))

@@ -1,0 +1,15 @@
+tstamp,entry
+2427107.654949,kvm_exit
+2427107.654951,kvm_entry
+2427107.654959,kvm_entry
+2427107.656069,sys_exit_ppoll
+2427107.656579,sys_enter_io_submit
+2427107.656586,sys_exit_io_submit
+2427107.656728,sys_exit_ppoll
+2427107.657510,sys_enter_io_getevents
+2427107.657512,sys_exit_io_getevents
+2427107.658307,sys_exit_ppoll
+2427107.658318,kvm_entry
+2427107.658331,kvm_inj_virq
+2427107.658333,kvm_entry
+2427107.658338,kvm_entry

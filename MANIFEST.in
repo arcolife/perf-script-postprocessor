@@ -1,0 +1,1 @@
+include requirements.txt README.md LICENSE.txt INSTALL bin/delta_processor bin/perf_script_processor RELEASE-NOTES THANKS

@@ -1,0 +1,53 @@
+Delta Processor INSTALLATION
+======================
+
+About
+=====
+This document specifies how to build, customize, and install 
+Delta Processor for the first time. See RELEASE-NOTES if you 
+are upgrading from a previous release.
+
+Contents
+========
+
+0. Prerequisites
+1. Quick instructions for the impatient users
+2. Detailed instructions for the patient users/developers
+
+--------------------------------------------------------------------
+
+0. Prerequisites:
+
+   Install the prerequisites through the following command:
+
+   $ pip install -r requirements.txt
+
+   This software requires Python 2.7.5+ 
+--------------------------------------------------------------------
+
+1. Quick instructions for the impatient users:
+
+   $ sudo ./install
+
+--------------------------------------------------------------------
+
+2. Detailed instructions for the patient users/developers:
+   
+   A) If you're a developer
+      
+      - Run the following on console:
+
+      	$ git clone http://github.com/arcolife/perf-script-postprocessor.git
+	$ cd perf-script-postprocessor/
+	$ sudo sh setup.sh	
+      	$ sudo python setup.py develop
+     	$ ./tests/run-tests.sh
+
+   B) If you're a user
+
+      - Run the following on console:
+      	
+	$ sudo sh setup.sh
+     	$ ./tests/run-tests.sh
+
+--------------------------------------------------------------------

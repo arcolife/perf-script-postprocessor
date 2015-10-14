@@ -1,0 +1,29 @@
+--------------------------------------------------------------------
+ScholaRec v0.1
+released on Oct 15, 2015
+http://arcolife.github.io/perf-script-postprocessor/
+--------------------------------------------------------------------
+
+This release contains a major overhauling of package names and imports.
+It is recommended that all previous downloads be uninstalled 
+and this one to be installed from scratch. Refer to the documentation.
+
+What's new:
+-----------
+
+*) Initial Release
+
+Future Plans:
+-------------
+
+*) Better use of reason part of `perf script` output to provide detailed statistics
+
+Download:
+---------
+tarball <https://github.com/arcolife/perf-script-postprocessor/archive/v0.1.tar.gz>
+zipball <https://github.com/arcolife/perf-script-postprocessor/archive/v0.1.zip>
+
+Installation notes:
+-------------------
+
+Please follow the INSTALL file bundled in the distribution tarball.
