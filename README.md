@@ -8,7 +8,9 @@ a set of utilities,which is provided under the package [perf-tools](https://gith
 
 ## INSTALLATION
 
-`$ sudo ./install`
+Install from pip: `$ pip2 install perf-script-postprocessor`
+
+For more, refer to `INSTALL` guide. 
 
 ## TESTS
 
