@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# usage: $ ./perf_script_process.sh <dir where perf.data exists>
+# usage: Refer to README.md / WIKI.md
 
+# Process brief:
 # run perf script, grep for qemu-kvm (this can be adjusted)
 # then get the timestamp and metric fields, clean them and
 # dump the data in a csv file
