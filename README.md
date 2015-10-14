@@ -1,5 +1,7 @@
 # perf-script-postprocessor
 
+[![Build Status](https://travis-ci.org/arcolife/perf-script-postprocessor.svg?branch=master)](https://travis-ci.org/arcolife/perf-script-postprocessor)
+
 This calculates delta (difference of timestamps from various
 entry/exit points from events recorded) from the trace output,
 which is produced by using the `perf script` command, which in turn,
