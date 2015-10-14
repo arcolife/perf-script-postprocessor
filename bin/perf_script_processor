@@ -40,6 +40,11 @@ while getopts "h?t:p:" opt; do
     esac
 done
 
+if [ ! -f /etc/delta_processor.conf ]; then
+    echo "You need to specify configurations under /etc/delta_processor.conf"
+    exit 1
+fi
+
 if [[ -z $DUMP_PATH ]]; then
     # defaults to /tmp
     DUMP_PATH='/tmp/pp_results/'
@@ -58,6 +63,7 @@ start_pp(){
     if [[ ! -z $DUMP_PATH ]]; then 
 	# run postprocessor on that
 	if [ -f ${DUMP_PATH%/}/perf_data.csv ]; then
+	    echo "Processing perf_data.csv ..."
 	    delta_processor -i ${DUMP_PATH%/}/perf_data.csv \
 			    -o $DUMP_PATH -m 0 -t $skim_opt \
 			    -l ${DUMP_PATH%/}/delta_output.log 
@@ -88,13 +94,14 @@ start_pp(){
 
 	else
 	    echo "ERROR! one of: perf.data/perf_data.csv/raw_perf is required in path supplied.."
+	    exit 1
 	fi
+	echo "logs have been saved to ${DUMP_PATH%/}/delta_output.log"
     else
 	echo "ERROR! You need to specify a dir path where perf.data resides"
 	echo -e "Usage:\t$ ./perf_script_process.sh <dir where perf.data exists>"
+	exit 1
     fi
 }
 
-echo "Processing perf_data.csv ..."
 start_pp
-echo "logs have been saved to ${DUMP_PATH%/}/delta_output.log"

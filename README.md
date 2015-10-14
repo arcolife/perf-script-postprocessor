@@ -8,7 +8,15 @@ a set of utilities,which is provided under the package [perf-tools](https://gith
 
 ## INSTALLATION
 
-Install from pip: `$ pip2 install perf-script-postprocessor`
+Step 1: Install from pip: `$ pip2 install perf-script-postprocessor`
+
+Step 2: Copy [this conf file](https://raw.githubusercontent.com/arcolife/perf-script-postprocessor/master/delta_processor.conf)
+     	into /etc/
+
+Step 3: Customize the conf file accordingly.
+
+Optional: 
+Step 4: Refer to docs/WIKI.md or [this page](https://github.com/arcolife/perf-script-postprocessor/wiki) for detailed usage.
 
 For more, refer to `INSTALL` guide. 
 

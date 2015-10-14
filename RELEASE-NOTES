@@ -1,5 +1,5 @@
 --------------------------------------------------------------------
-perf-script-postprocessor v0.4
+perf-script-postprocessor
 released on Oct 15, 2015
 http://arcolife.github.io/perf-script-postprocessor/
 --------------------------------------------------------------------
@@ -11,17 +11,12 @@ and this one to be installed from scratch. Refer to the documentation.
 What's new:
 -----------
 
-*) pip packaging
+*) bugfixes in perf_script_processor
 
 Future Plans:
 -------------
 
 *) Better use of reason part of `perf script` output to provide detailed statistics
-
-Download:
----------
-tarball <https://github.com/arcolife/perf-script-postprocessor/archive/v0.4.tar.gz>
-zipball <https://github.com/arcolife/perf-script-postprocessor/archive/v0.4.zip>
 
 Installation notes:
 -------------------
