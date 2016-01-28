@@ -56,52 +56,69 @@ if [[ -z $skim_opt ]]; then
     skim_opt=0
 fi
 
-skim_pattern=$(grep "^${skim_types[$skim_opt]}" /etc/delta_processor.conf | \
-		      awk -F' ' '{print $3}' | \
-		      sed s#kvm_exit#kvm_exit.*IO_#g)
+skim_pattern=$(grep "^${skim_types[$skim_opt]}" /etc/delta_processor.conf | awk -F' ' '{print $3}' | sed s#kvm_exit#kvm_exit.*IO_#g)
 
 start_pp(){
     if [[ ! -z $DUMP_PATH ]]; then 
-	# run postprocessor on that
-	if [ -f ${DUMP_PATH%/}/perf_data.csv ]; then
-	    echo "Processing perf_data.csv ..."
-	    delta_processor -i ${DUMP_PATH%/}/perf_data.csv \
-			    -o $DUMP_PATH -m 0 -t $skim_opt \
-			    -l ${DUMP_PATH%/}/delta_output.log 
+		# csv format processed from *.data / raw_perf previously
+		if [ -f ${DUMP_PATH%/}/perf_data.csv ]; then
+		    echo "Processing perf_data.csv ..."
+		    delta_processor -i ${DUMP_PATH%/}/perf_data.csv \
+				    -o $DUMP_PATH -m 0 -t $skim_opt \
+				    -l ${DUMP_PATH%/}/delta_output.log 
 
-	elif [ -f ${DUMP_PATH%/}/raw_perf ]; then
-	    echo "Processing raw_perf ..."
-	    cat ${DUMP_PATH%/}/raw_perf | grep qemu-kvm | awk -F' ' '{print $4,$5,$6,$7}' | \
-		egrep $skim_pattern | awk -F' ' '{print $1,$2}' | \
-		sed 's/sched://g' | sed 's/kvm://g' | sed 's/syscalls://g' | \
-		sed 's/://g' | sed 's/ /,/g' > ${DUMP_PATH%/}/perf_data.csv
-	    # add header to csv file
-	    sed -i '1s/^/tstamp,entry\n/' ${DUMP_PATH%/}/perf_data.csv
-	    delta_processor -i ${DUMP_PATH%/}/perf_data.csv \
-			    -o $DUMP_PATH -m 0 -t $skim_opt \
-			    -l ${DUMP_PATH%/}/delta_output.log
+		# plain text format processed from *.data previously
+		elif [ -f ${DUMP_PATH%/}/raw_perf ]; then
+		    echo "Processing raw_perf ..."
+		    cat ${DUMP_PATH%/}/raw_perf | egrep 'qemu-kvm|qemu-system-x86' | awk -F' ' '{print $4,$5,$6,$7}' | \
+			egrep $skim_pattern | awk -F' ' '{print $1,$2}' | \
+			sed 's/sched://g' | sed 's/kvm://g' | sed 's/syscalls://g' | \
+			sed 's/://g' | sed 's/ /,/g' > ${DUMP_PATH%/}/perf_data.csv
+		    # add header to csv file
+		    sed -i '1s/^/tstamp,entry\n/' ${DUMP_PATH%/}/perf_data.csv
+		    delta_processor -i ${DUMP_PATH%/}/perf_data.csv \
+				    -o $DUMP_PATH -m 0 -t $skim_opt \
+				    -l ${DUMP_PATH%/}/delta_output.log
 
-	elif [ -f ${DUMP_PATH%/}/perf.data ]; then
-	    echo "Processing perf.data ..."
-	    perf script | grep qemu-kvm | awk -F' ' '{print $4,$5,$6,$7}' | \
-		egrep $skim_pattern | awk -F' ' '{print $1,$2}' | \
-		sed 's/sched://g' | sed 's/kvm://g' | sed 's/syscalls://g' | \
-		sed 's/://g' | sed 's/ /,/g' > ${DUMP_PATH%/}/perf_data.csv
-	    # add header to csv file
-	    sed -i '1s/^/tstamp,entry\n/' ${DUMP_PATH%/}/perf_data.csv
-	    delta_processor -i ${DUMP_PATH%/}/perf_data.csv \
-			    -o $DUMP_PATH -m 0 -t $skim_opt \
-			    -l ${DUMP_PATH%/}/delta_output.log
+		# process *.data file directly (above if-else cases exist for data previously processed)
+		elif [ -f ${DUMP_PATH%/}/perf.data ] || [[ $DUMP_PATH =~ .*[.]data  && -f $DUMP_PATH ]]; then
+			# ensure that the <path>/custom_filename.data || <path>/perf.data exists		    
+		    if [[ $DUMP_PATH =~ .*[.]data ]]; then
+		    	echo "Processing $(basename $DUMP_PATH)"
+			    perf script -i $DUMP_PATH| egrep 'qemu-kvm|qemu-system-x86' | awk -F' ' '{print $4,$5,$6,$7}' | \
+				egrep $skim_pattern | awk -F' ' '{print $1,$2}' | \
+				sed 's/sched://g' | sed 's/kvm://g' | sed 's/syscalls://g' | \
+				sed 's/://g' | sed 's/ /,/g' > ${DUMP_PATH%$(basename $DUMP_PATH)}perf_data.csv
+	
+			    # add header to csv file
+			    sed -i '1s/^/tstamp,entry\n/' ${DUMP_PATH%$(basename $DUMP_PATH)}/perf_data.csv
+			    delta_processor -i ${DUMP_PATH%$(basename $DUMP_PATH)}perf_data.csv \
+					    -o ${DUMP_PATH%$(basename $DUMP_PATH)} -m 0 -t $skim_opt \
+					    -l ${DUMP_PATH%$(basename $DUMP_PATH)}delta_output.log
+			else		
+			    echo "Processing perf.data ..."
+			    perf script | egrep 'qemu-kvm|qemu-system-x86' | awk -F' ' '{print $4,$5,$6,$7}' | \
+				egrep $skim_pattern | awk -F' ' '{print $1,$2}' | \
+				sed 's/sched://g' | sed 's/kvm://g' | sed 's/syscalls://g' | \
+				sed 's/://g' | sed 's/ /,/g' > ${DUMP_PATH%/}/perf_data.csv
+	
+			    # add header to csv file
+			    sed -i '1s/^/tstamp,entry\n/' ${DUMP_PATH%/}/perf_data.csv
+			    delta_processor -i ${DUMP_PATH%/}/perf_data.csv \
+					    -o $DUMP_PATH -m 0 -t $skim_opt \
+					    -l ${DUMP_PATH%/}/delta_output.log
+			fi
 
-	else
-	    echo "ERROR! one of: perf.data/perf_data.csv/raw_perf is required in path supplied.."
-	    exit 1
-	fi
-	echo "logs have been saved to ${DUMP_PATH%/}/delta_output.log"
+
+		else
+		    echo "ERROR! one of: perf.data/perf_data.csv/raw_perf is required in path supplied.."
+		    exit 1
+		fi
+		echo "logs have been saved to ${DUMP_PATH%/}/delta_output.log"
     else
-	echo "ERROR! You need to specify a dir path where perf.data resides"
-	echo -e "Usage:\t$ ./perf_script_process.sh <dir where perf.data exists>"
-	exit 1
+		echo "ERROR! You need to specify a dir path where perf.data resides"
+		echo -e "Usage:\t$ ./perf_script_process.sh <dir where perf.data exists>"
+		exit 1
     fi
 }
 
