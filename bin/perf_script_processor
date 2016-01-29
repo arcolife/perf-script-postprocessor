@@ -72,7 +72,7 @@ start_pp(){
 		    echo "Processing raw_perf ..."
 		    cat ${DUMP_PATH%/}/raw_perf | egrep 'qemu-kvm|qemu-system-x86' | awk -F' ' '{print $4,$5,$6,$7}' | \
 			egrep $skim_pattern | awk -F' ' '{print $1,$2}' | \
-			sed 's/sched://g' | sed 's/kvm://g' | sed 's/syscalls://g' | \
+			sed 's/sched://g' | sed 's/kvm://g' | sed 's/raw_syscalls://g' | sed 's/syscalls://g' | \
 			sed 's/://g' | sed 's/ /,/g' > ${DUMP_PATH%/}/perf_data.csv
 		    # add header to csv file
 		    sed -i '1s/^/tstamp,entry\n/' ${DUMP_PATH%/}/perf_data.csv
@@ -87,7 +87,7 @@ start_pp(){
 		    	echo "Processing $(basename $DUMP_PATH)"
 			    perf script -i $DUMP_PATH| egrep 'qemu-kvm|qemu-system-x86' | awk -F' ' '{print $4,$5,$6,$7}' | \
 				egrep $skim_pattern | awk -F' ' '{print $1,$2}' | \
-				sed 's/sched://g' | sed 's/kvm://g' | sed 's/syscalls://g' | \
+				sed 's/sched://g' | sed 's/kvm://g' | sed 's/raw_syscalls://g' | sed 's/syscalls://g' | \
 				sed 's/://g' | sed 's/ /,/g' > ${DUMP_PATH%$(basename $DUMP_PATH)}perf_data.csv
 	
 			    # add header to csv file
@@ -99,7 +99,7 @@ start_pp(){
 			    echo "Processing perf.data ..."
 			    perf script | egrep 'qemu-kvm|qemu-system-x86' | awk -F' ' '{print $4,$5,$6,$7}' | \
 				egrep $skim_pattern | awk -F' ' '{print $1,$2}' | \
-				sed 's/sched://g' | sed 's/kvm://g' | sed 's/syscalls://g' | \
+				sed 's/sched://g' | sed 's/kvm://g' | sed 's/raw_syscalls://g' | sed 's/syscalls://g' | \
 				sed 's/://g' | sed 's/ /,/g' > ${DUMP_PATH%/}/perf_data.csv
 	
 			    # add header to csv file
@@ -114,7 +114,11 @@ start_pp(){
 		    echo "ERROR! one of: perf.data/perf_data.csv/raw_perf is required in path supplied.."
 		    exit 1
 		fi
-		echo "logs have been saved to ${DUMP_PATH%/}/delta_output.log"
+		if [[ $DUMP_PATH =~ .*[.]data ]]; then
+			echo "logs have been saved to ${DUMP_PATH%$(basename $DUMP_PATH)}delta_output.log"
+		else
+			echo "logs have been saved to ${DUMP_PATH%/}/delta_output.log"
+		fi
     else
 		echo "ERROR! You need to specify a dir path where perf.data resides"
 		echo -e "Usage:\t$ ./perf_script_process.sh <dir where perf.data exists>"
