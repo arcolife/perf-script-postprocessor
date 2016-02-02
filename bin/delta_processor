@@ -83,6 +83,23 @@ class PostProcessor(object):
         self.log_file.write("\n" + "*"*22)
         self.log_file.write("\nUnique metrics found:\n\t%s\n" % '\n\t'.join(self.entries))
 
+    def visualize_delta(self):
+        deltas = [i for i in self.loops.keys() if 'delta' in i] 
+        # for delta in deltas:
+        #     print("%s -- mean: %f -- max: %f -- min: %f" %(delta, df[delta].mean(), df[delta].max(), df[delta].min()))
+        self.loops.replace(0,pd.np.nan, inplace=True) 
+        df_stat = pd.DataFrame([self.loops[deltas].max().values, self.loops[deltas].mean().values, self.loops[deltas].min().values]).T
+        df_stat.columns = ['Max', 'Mean', 'Min']
+        df_stat.index = deltas
+
+        ax = df_stat.plot(kind='bar', log=True, rot=25, figsize=(18,11))
+        # ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=-1)
+        # ax.text(1, 2, df_stat.T, style='italic',
+        #         bbox={'facecolor':'yellow', 'alpha':0.5, 'pad':20})
+        fig = ax.get_figure()
+        fig.tight_layout()
+        fig.savefig('%s.png'%(os.path.join(self.result_path, 'delta_figure')))
+
     def prepare_delta(self):
         self.load_data()
         # prepare list of metric categories
@@ -97,10 +114,10 @@ class PostProcessor(object):
         
         data = []
 
-        ## calculate sequential event loops (list of dicts)
+        ## calculate sequential event self.loops (list of dicts)
         buf_base = dict.fromkeys(self.loop_order[:-1])
         buf_mirror = buf_base.copy()
-        # calculate sequential event loops (list of dicts)
+        # calculate sequential event self.loops (list of dicts)
         self._df = self.df[self.df.entry.isin(self.loop_order)]
         self._df = self._df.reset_index().drop('index', axis=1)
         for i in range(len(self._df)):
@@ -134,17 +151,17 @@ class PostProcessor(object):
 
         del self._df
 
-        # form dataframe from calculated loops data 
-        loops = pd.DataFrame(data, columns=self.loop_order)
+        # form dataframe from calculated self.loops data 
+        self.loops = pd.DataFrame(data, columns=self.loop_order)
 
         # calculate intra-loop deltas
         for i in range(len(self.loop_order)-1):
             current = "delta:%s__%s" % (self.loop_order[i+1], 
                 self.loop_order[i])
-            loops.loc[:,current] = loops.loc[:,self.loop_order[i+1]] - \
-                                     loops.loc[:,self.loop_order[i]]
-        loops = loops.fillna(0)
-        loops.to_csv('%s.csv'%(os.path.join(self.result_path, 'loop_diff')))
+            self.loops.loc[:,current] = self.loops.loc[:,self.loop_order[i+1]] - \
+                                     self.loops.loc[:,self.loop_order[i]]
+        self.loops = self.loops.fillna(0)
+        self.loops.to_csv('%s.csv'%(os.path.join(self.result_path, 'loop_diff')))
 
         self.log_file.write("\n" + "*"*22)
         for i in range(len(self.loop_order)-1):
@@ -152,12 +169,13 @@ class PostProcessor(object):
                 self.loop_order[i])
             self.log_file.write("\n%s stats:" %(current))
             self.log_file.write("\n\tStandard Dev: %s\n\tMean: %s\n\tMedian: %s" % \
-                        (loops[current].std(), 
-                         loops[current].mean(), 
-                         loops[current].median()))
+                        (self.loops[current].std(), 
+                         self.loops[current].mean(), 
+                         self.loops[current].median()))
             self.log_file.write("\n" + "="*22)
         self.log_file.write("\n")
 
+        self.visualize_delta()
         if self.mode==1:
             for entry in self.entries:
                 _tmp = self.df[(self.df['entry'] == \
