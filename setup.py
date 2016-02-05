@@ -1,4 +1,4 @@
-from setuptools import find_packages, tests, setup
+from setuptools import find_packages, setup
 from pip.req import parse_requirements
 import os
 import codecs
