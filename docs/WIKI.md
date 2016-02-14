@@ -128,3 +128,10 @@ for i in indices:
 	In addition, it will produce a	`loop_diff.csv` and a `perf_data.csv` in the output dir.
 	
 	If it doesn't, Well :shit: . 
+
+* Other related tools?
+
+  - [flame graphs](https://github.com/brendangregg/FlameGraph)
+  - [kernelshark](http://people.redhat.com/srostedt/kernelshark/HTML/)
+  - ..?  (if you know more, please send in PR to add them here)
+  
