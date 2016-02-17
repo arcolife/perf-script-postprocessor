@@ -21,6 +21,8 @@
 
 - [ ] Separate all latencies in different files.
 
-- [ ] Get visualizations
+- [x] Get visualizations
 
 - [ ] Better UI
+
+- [ ] in bin/perf_script_processor, use dirname instead of complex stripping method (duh)
